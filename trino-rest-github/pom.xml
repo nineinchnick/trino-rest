@@ -78,14 +78,14 @@
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>log-manager</artifactId>
-            <version>204</version>
+            <version>205</version>
         </dependency>
 
         <!-- for running PageSaver -->
         <dependency>
             <groupId>io.trino</groupId>
             <artifactId>trino-jdbc</artifactId>
-            <version>354</version>
+            <version>355</version>
         </dependency>
 
         <!-- for testing -->
