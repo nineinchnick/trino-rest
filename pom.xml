@@ -150,7 +150,7 @@
                 <plugin>
                     <groupId>ca.vanzyl.provisio.maven.plugins</groupId>
                     <artifactId>provisio-maven-plugin</artifactId>
-                    <version>1.0.9</version>
+                    <version>1.0.15</version>
                 </plugin>
             </plugins>
         </pluginManagement>
