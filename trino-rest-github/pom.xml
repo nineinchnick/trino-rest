@@ -91,7 +91,7 @@
         <dependency>
             <groupId>io.trino</groupId>
             <artifactId>trino-jdbc</artifactId>
-            <version>355</version>
+            <version>356</version>
         </dependency>
 
         <!-- for testing -->
