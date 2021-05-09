@@ -14,7 +14,6 @@
 
 package pl.net.was.rest;
 
-import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ColumnMetadata;
@@ -23,11 +22,9 @@ import io.trino.spi.connector.ConnectorMetadata;
 import io.trino.spi.connector.ConnectorOutputMetadata;
 import io.trino.spi.connector.ConnectorSession;
 import io.trino.spi.connector.ConnectorTableHandle;
-import io.trino.spi.connector.ConnectorTableLayout;
-import io.trino.spi.connector.ConnectorTableLayoutHandle;
-import io.trino.spi.connector.ConnectorTableLayoutResult;
 import io.trino.spi.connector.ConnectorTableMetadata;
 import io.trino.spi.connector.Constraint;
+import io.trino.spi.connector.ConstraintApplicationResult;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SchemaTablePrefix;
 import io.trino.spi.predicate.TupleDomain;
@@ -37,7 +34,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import static java.util.stream.Collectors.toMap;
 
@@ -61,26 +57,9 @@ public class RestMetadata
     public ConnectorTableHandle getTableHandle(ConnectorSession connectorSession, SchemaTableName schemaTableName)
     {
         if (rest.listTables().contains(schemaTableName)) {
-            return new RestTableHandle(schemaTableName);
+            return new RestTableHandle(schemaTableName, TupleDomain.all());
         }
         return null;
-    }
-
-    @Override
-    public List<ConnectorTableLayoutResult> getTableLayouts(ConnectorSession session, ConnectorTableHandle table, Constraint constraint, Optional<Set<ColumnHandle>> desiredColumns)
-    {
-        RestTableHandle tableHandle = Types.checkType(table, RestTableHandle.class, "tableHandle");
-        return ImmutableList.of(
-                new ConnectorTableLayoutResult(
-                        getTableLayout(session, new RestConnectorTableLayoutHandle(tableHandle)),
-                        TupleDomain.all()));
-    }
-
-    @Override
-    public ConnectorTableLayout getTableLayout(ConnectorSession connectorSession, ConnectorTableLayoutHandle connectorTableLayoutHandle)
-    {
-        RestConnectorTableLayoutHandle tableLayoutHandle = Types.checkType(connectorTableLayoutHandle, RestConnectorTableLayoutHandle.class, "tableLayoutHandle");
-        return new ConnectorTableLayout(tableLayoutHandle);
     }
 
     @Override
@@ -100,7 +79,7 @@ public class RestMetadata
     public Map<String, ColumnHandle> getColumnHandles(ConnectorSession connectorSession, ConnectorTableHandle connectorTableHandle)
     {
         return getTableMetadata(connectorSession, connectorTableHandle).getColumns().stream()
-                .collect(toMap(column -> column.getName(), column -> new RestColumnHandle(column.getName(), column.getType())));
+                .collect(toMap(ColumnMetadata::getName, column -> new RestColumnHandle(column.getName(), column.getType())));
     }
 
     @Override
@@ -127,5 +106,11 @@ public class RestMetadata
     public Optional<ConnectorOutputMetadata> finishInsert(ConnectorSession session, ConnectorInsertTableHandle insertHandle, Collection<Slice> fragments, Collection<ComputedStatistics> computedStatistics)
     {
         return Optional.empty();
+    }
+
+    @Override
+    public Optional<ConstraintApplicationResult<ConnectorTableHandle>> applyFilter(ConnectorSession session, ConnectorTableHandle handle, Constraint constraint)
+    {
+        return rest.applyFilter(session, handle, constraint);
     }
 }

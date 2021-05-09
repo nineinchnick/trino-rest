@@ -17,14 +17,22 @@ package pl.net.was.rest.github;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ColumnMetadata;
+import io.trino.spi.connector.ConnectorSession;
+import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.ConnectorTableMetadata;
+import io.trino.spi.connector.Constraint;
+import io.trino.spi.connector.ConstraintApplicationResult;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SchemaTablePrefix;
+import io.trino.spi.predicate.TupleDomain;
 import io.trino.spi.type.ArrayType;
 import io.trino.spi.type.RowType;
 import io.trino.spi.type.TimestampWithTimeZoneType;
 import pl.net.was.rest.Rest;
+import pl.net.was.rest.RestColumnHandle;
+import pl.net.was.rest.RestTableHandle;
 import pl.net.was.rest.github.model.Issue;
 import retrofit2.Response;
 import retrofit2.Retrofit;
@@ -34,6 +42,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -42,6 +51,7 @@ import static io.trino.spi.type.BooleanType.BOOLEAN;
 import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 
 public class GithubRest
         implements Rest
@@ -544,8 +554,9 @@ public class GithubRest
     }
 
     @Override
-    public Collection<? extends List<?>> getRows(SchemaTableName schemaTableName)
+    public Collection<? extends List<?>> getRows(RestTableHandle table)
     {
+        SchemaTableName schemaTableName = table.getSchemaTableName();
         // don't implement any API that has pagination, just expose functions to fetch that data
         // and put it into tables in other persistent dbs
         // TODO support predicate pushdown and allow more endpoints when all required params are present
@@ -566,7 +577,7 @@ public class GithubRest
                 throw new UnsupportedOperationException("Use review_comments function instead");
             case "issues":
                 // this is just an example and should not be used, see comments above
-                return getIssues();
+                return getIssues(table.getConstraint());
             case "issue_comments":
                 throw new UnsupportedOperationException("Use issue_comments function instead");
             case "runs":
@@ -579,7 +590,7 @@ public class GithubRest
         return null;
     }
 
-    private Collection<? extends List<?>> getIssues()
+    private Collection<? extends List<?>> getIssues(TupleDomain<ColumnHandle> constraint)
     {
         ImmutableList.Builder<List<?>> result = new ImmutableList.Builder<>();
 
@@ -587,6 +598,7 @@ public class GithubRest
         while (true) {
             Response<List<Issue>> response;
             try {
+                // TODO apply constraint
                 response = service.listIssues("Bearer " + token, owner, repo, 100, page++, "0000-00-00T00:00:00Z").execute();
             }
             catch (IOException e) {
@@ -631,5 +643,48 @@ public class GithubRest
                         columnMetadata.getType()))
                 .collect(Collectors.toList());
         return RowType.from(fields);
+    }
+
+    @Override
+    public Optional<ConstraintApplicationResult<ConnectorTableHandle>> applyFilter(ConnectorSession session, ConnectorTableHandle table, Constraint constraint)
+    {
+        RestTableHandle restTable = (RestTableHandle) table;
+        TupleDomain<ColumnHandle> currentConstraint = restTable.getConstraint();
+
+        TupleDomain<ColumnHandle> newConstraint = TupleDomain.all();
+        TupleDomain<ColumnHandle> unenforcedConstraint = constraint.getSummary();
+
+        Map<String, ColumnHandle> columns = getTableMetadata(restTable.getSchemaTableName())
+                .getColumns()
+                .stream()
+                .collect(toMap(
+                        ColumnMetadata::getName,
+                        column -> new RestColumnHandle(column.getName(), column.getType())));
+
+        // TODO this should be a map to a function to return both values
+        if (restTable.getSchemaTableName().getTableName().equals("issues")) {
+            newConstraint = constraint.getSummary().filter(
+                    (columnHandle, domain) -> columnHandle.equals(columns.get("commit_id")));
+            unenforcedConstraint = constraint.getSummary().filter(
+                    (columnHandle, domain) -> !columnHandle.equals(columns.get("commit_id")));
+        }
+
+        if (currentConstraint.isAll() && newConstraint.isAll()) {
+            return Optional.empty();
+        }
+        if (currentConstraint.isAll()) {
+            currentConstraint = newConstraint;
+        }
+        else if (!newConstraint.isAll()) {
+            // TODO validate if there are multiple values for a filter that supports only one value
+            // for example, when filtering by status of open and closed, ignore such constraint
+            currentConstraint = TupleDomain.columnWiseUnion(currentConstraint, newConstraint);
+        }
+
+        return Optional.of(new ConstraintApplicationResult<>(
+                new RestTableHandle(
+                        restTable.getSchemaTableName(),
+                        currentConstraint),
+                unenforcedConstraint));
     }
 }

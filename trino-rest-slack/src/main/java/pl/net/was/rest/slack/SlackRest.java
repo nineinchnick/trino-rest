@@ -21,6 +21,7 @@ import io.trino.spi.connector.ConnectorTableMetadata;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SchemaTablePrefix;
 import pl.net.was.rest.Rest;
+import pl.net.was.rest.RestTableHandle;
 import pl.net.was.rest.slack.model.Channel;
 import pl.net.was.rest.slack.model.Channels;
 import pl.net.was.rest.slack.model.History;
@@ -135,8 +136,9 @@ public class SlackRest
     }
 
     @Override
-    public Collection<? extends List<?>> getRows(SchemaTableName schemaTableName)
+    public Collection<? extends List<?>> getRows(RestTableHandle table)
     {
+        SchemaTableName schemaTableName = table.getSchemaTableName();
         History history = getHistory(schemaTableName);
 
         if (history.getError() != null) {

@@ -24,7 +24,6 @@ import io.trino.spi.connector.ConnectorTableMetadata;
 import io.trino.spi.connector.ConnectorTransactionHandle;
 import io.trino.spi.connector.InMemoryRecordSet;
 import io.trino.spi.connector.RecordSet;
-import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.type.Type;
 
 import java.util.Collection;
@@ -54,9 +53,9 @@ public class RestRecordSetProvider
         // TODO fix below cast
         List<RestColumnHandle> restColumnHandles = (List<RestColumnHandle>) list;
 
-        SchemaTableName schemaTableName = ((RestTableHandle) table).getSchemaTableName();
-        Collection<? extends List<?>> rows = rest.getRows(schemaTableName);
-        ConnectorTableMetadata tableMetadata = rest.getTableMetadata(schemaTableName);
+        RestTableHandle restTable = (RestTableHandle) table;
+        Collection<? extends List<?>> rows = rest.getRows(restTable);
+        ConnectorTableMetadata tableMetadata = rest.getTableMetadata(restTable.getSchemaTableName());
 
         List<Integer> columnIndexes = restColumnHandles.stream()
                 .map(column -> {

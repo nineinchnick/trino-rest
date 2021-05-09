@@ -22,6 +22,7 @@ import io.trino.spi.connector.ConnectorTableMetadata;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SchemaTablePrefix;
 import pl.net.was.rest.Rest;
+import pl.net.was.rest.RestTableHandle;
 import pl.net.was.rest.twitter.model.SearchResult;
 import pl.net.was.rest.twitter.model.Status;
 import pl.net.was.rest.twitter.rest.TwitterService;
@@ -95,8 +96,9 @@ public class TwitterRest
     }
 
     @Override
-    public Collection<? extends List<?>> getRows(SchemaTableName schemaTableName)
+    public Collection<? extends List<?>> getRows(RestTableHandle table)
     {
+        SchemaTableName schemaTableName = table.getSchemaTableName();
         return searchTweets("#" + schemaTableName.getTableName());
     }
 

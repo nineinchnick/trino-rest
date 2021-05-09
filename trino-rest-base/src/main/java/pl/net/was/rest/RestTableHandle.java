@@ -16,24 +16,40 @@ package pl.net.was.rest;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.SchemaTableName;
+import io.trino.spi.predicate.TupleDomain;
 
 public class RestTableHandle
         implements ConnectorTableHandle
 {
     private final SchemaTableName schemaTableName;
+    private TupleDomain<ColumnHandle> constraint;
 
     @JsonCreator
     public RestTableHandle(
-            @JsonProperty("schemaTableName") SchemaTableName schemaTableName)
+            @JsonProperty("schemaTableName") SchemaTableName schemaTableName,
+            @JsonProperty("constraint") TupleDomain<ColumnHandle> constraint)
     {
         this.schemaTableName = schemaTableName;
+        this.constraint = constraint;
     }
 
     @JsonProperty("schemaTableName")
     public SchemaTableName getSchemaTableName()
     {
         return schemaTableName;
+    }
+
+    @JsonProperty("constraint")
+    public TupleDomain<ColumnHandle> getConstraint()
+    {
+        return constraint;
+    }
+
+    public void setConstraint(TupleDomain<ColumnHandle> constraint)
+    {
+        this.constraint = constraint;
     }
 }
