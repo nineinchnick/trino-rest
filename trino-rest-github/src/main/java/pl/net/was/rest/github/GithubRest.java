@@ -17,6 +17,7 @@ package pl.net.was.rest.github;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.airlift.slice.Slice;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ColumnMetadata;
 import io.trino.spi.connector.ConnectorSession;
@@ -26,6 +27,7 @@ import io.trino.spi.connector.Constraint;
 import io.trino.spi.connector.ConstraintApplicationResult;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SchemaTablePrefix;
+import io.trino.spi.predicate.Domain;
 import io.trino.spi.predicate.TupleDomain;
 import io.trino.spi.type.ArrayType;
 import io.trino.spi.type.RowType;
@@ -59,6 +61,7 @@ public class GithubRest
     public static final String SCHEMA_NAME = "default";
 
     private final String token;
+    // TODO replace these with pushing down predicates
     private final String owner;
     private final String repo;
     private final GithubService service = new Retrofit.Builder()
@@ -216,6 +219,7 @@ public class GithubRest
                     new ColumnMetadata("original_line", BIGINT),
                     new ColumnMetadata("side", createUnboundedVarcharType())))
             .put("issues", ImmutableList.of(
+                    // TODO add owner and repo, these + id make a primary key
                     new ColumnMetadata("id", BIGINT),
                     new ColumnMetadata("number", BIGINT),
                     new ColumnMetadata("state", createUnboundedVarcharType()),
@@ -512,11 +516,23 @@ public class GithubRest
             "updated_at timestamp(3) with time zone" +
             "))";
 
+    private final Map<String, Map<String, ColumnHandle>> columnHandles;
+
     public GithubRest(String token, String owner, String repo)
     {
         this.token = token;
         this.owner = owner;
         this.repo = repo;
+
+        columnHandles = columns.keySet()
+                .stream()
+                .collect(Collectors.toMap(
+                        tableName -> tableName,
+                        tableName -> columns.get(tableName)
+                                .stream()
+                                .collect(toMap(
+                                        ColumnMetadata::getName,
+                                        column -> new RestColumnHandle(column.getName(), column.getType())))));
     }
 
     @Override
@@ -598,8 +614,15 @@ public class GithubRest
         while (true) {
             Response<List<Issue>> response;
             try {
-                // TODO apply constraint
-                response = service.listIssues("Bearer " + token, owner, repo, 100, page++, "0000-00-00T00:00:00Z").execute();
+                String since = "0000-00-00T00:00:00Z";
+                if (constraint.getDomains().isPresent()) {
+                    // TODO add owner and repo, throw an exception if they're missing
+                    Domain domain = constraint.getDomains().get().get(columnHandles.get("issues").get("updated_at"));
+                    if (domain != null) {
+                        since = ((Slice) domain.getSingleValue()).toStringUtf8();
+                    }
+                }
+                response = service.listIssues("Bearer " + token, owner, repo, 100, page++, since).execute();
             }
             catch (IOException e) {
                 throw Throwables.propagate(e);
@@ -649,25 +672,44 @@ public class GithubRest
     public Optional<ConstraintApplicationResult<ConnectorTableHandle>> applyFilter(ConnectorSession session, ConnectorTableHandle table, Constraint constraint)
     {
         RestTableHandle restTable = (RestTableHandle) table;
-        TupleDomain<ColumnHandle> currentConstraint = restTable.getConstraint();
 
-        TupleDomain<ColumnHandle> newConstraint = TupleDomain.all();
-        TupleDomain<ColumnHandle> unenforcedConstraint = constraint.getSummary();
-
-        Map<String, ColumnHandle> columns = getTableMetadata(restTable.getSchemaTableName())
-                .getColumns()
-                .stream()
-                .collect(toMap(
-                        ColumnMetadata::getName,
-                        column -> new RestColumnHandle(column.getName(), column.getType())));
-
-        // TODO this should be a map to a function to return both values
+        // TODO this should be a map to a function
         if (restTable.getSchemaTableName().getTableName().equals("issues")) {
-            newConstraint = constraint.getSummary().filter(
-                    (columnHandle, domain) -> columnHandle.equals(columns.get("commit_id")));
-            unenforcedConstraint = constraint.getSummary().filter(
-                    (columnHandle, domain) -> !columnHandle.equals(columns.get("commit_id")));
+            return applyIssuesFilter(restTable, constraint.getSummary());
         }
+
+        return Optional.empty();
+    }
+
+    private Optional<ConstraintApplicationResult<ConnectorTableHandle>> applyIssuesFilter(RestTableHandle table, TupleDomain<ColumnHandle> constraint)
+    {
+        Map<String, ColumnHandle> columns = columnHandles.get(table.getSchemaTableName().getTableName());
+        TupleDomain<ColumnHandle> currentConstraint = table.getConstraint();
+
+        // TODO add owner and repo
+        if (currentConstraint.getDomains().isPresent()) {
+            if (currentConstraint.getDomains().get().containsKey(columns.get("updated_at"))) {
+                // can push down only the first predicate against this column
+                // TODO this is not correct, choose lowest value
+                return Optional.empty();
+            }
+        }
+        TupleDomain<ColumnHandle> newConstraint = constraint.filter(
+                (columnHandle, domain) -> columnHandle.equals(columns.get("updated_at")));
+        if (newConstraint.getDomains().isPresent()) {
+            Domain domain = newConstraint.getDomains().get().get(columns.get("updated_at"));
+            // TODO figure out correct condition here to test against a left bounded range
+            // updated_at >= '2016-05-12 00:00:00Z' -> no change
+            // updated_at > '2016-05-12 00:00:00Z' -> updated_at >= '2016-05-12 00:00:01Z'
+            // updated_at = '2016-05-12 00:00:00Z' -> updated_at >= '2016-05-12 00:00:00Z'
+            // TODO does something like this already exist? simplify, intersect or union? need to be able to make this generic to support multiple attributes
+            if (!domain.isSingleValue()) {
+                // can push down only left bounded range predicates against this column
+                return Optional.empty();
+            }
+        }
+        TupleDomain<ColumnHandle> unenforcedConstraint = constraint.filter(
+                (columnHandle, domain) -> !columnHandle.equals(columns.get("updated_at")));
 
         if (currentConstraint.isAll() && newConstraint.isAll()) {
             return Optional.empty();
@@ -676,14 +718,12 @@ public class GithubRest
             currentConstraint = newConstraint;
         }
         else if (!newConstraint.isAll()) {
-            // TODO validate if there are multiple values for a filter that supports only one value
-            // for example, when filtering by status of open and closed, ignore such constraint
             currentConstraint = TupleDomain.columnWiseUnion(currentConstraint, newConstraint);
         }
 
         return Optional.of(new ConstraintApplicationResult<>(
                 new RestTableHandle(
-                        restTable.getSchemaTableName(),
+                        table.getSchemaTableName(),
                         currentConstraint),
                 unenforcedConstraint));
     }
