@@ -72,6 +72,8 @@ public class Issues
             throw new IllegalStateException(format("Invalid response, code %d, message: %s", response.code(), response.message()));
         }
         List<Issue> items = response.body();
+        items.forEach(i -> i.setOwner(owner.toStringUtf8()));
+        items.forEach(i -> i.setRepo(repo.toStringUtf8()));
         return buildBlock(items);
     }
 }

@@ -28,6 +28,7 @@ import io.trino.spi.connector.ConstraintApplicationResult;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SchemaTablePrefix;
 import io.trino.spi.predicate.Domain;
+import io.trino.spi.predicate.Range;
 import io.trino.spi.predicate.TupleDomain;
 import io.trino.spi.type.ArrayType;
 import io.trino.spi.type.RowType;
@@ -42,10 +43,12 @@ import retrofit2.converter.jackson.JacksonConverterFactory;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.logging.Filter;
 import java.util.stream.Collectors;
 
 import static io.trino.spi.type.BigintType.BIGINT;
@@ -219,7 +222,8 @@ public class GithubRest
                     new ColumnMetadata("original_line", BIGINT),
                     new ColumnMetadata("side", createUnboundedVarcharType())))
             .put("issues", ImmutableList.of(
-                    // TODO add owner and repo, these + id make a primary key
+                    new ColumnMetadata("owner", createUnboundedVarcharType()),
+                    new ColumnMetadata("repo", createUnboundedVarcharType()),
                     new ColumnMetadata("id", BIGINT),
                     new ColumnMetadata("number", BIGINT),
                     new ColumnMetadata("state", createUnboundedVarcharType()),
@@ -241,6 +245,8 @@ public class GithubRest
                     new ColumnMetadata("updated_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
                     new ColumnMetadata("author_association", createUnboundedVarcharType())))
             .put("issue_comments", ImmutableList.of(
+                    new ColumnMetadata("owner", createUnboundedVarcharType()),
+                    new ColumnMetadata("repo", createUnboundedVarcharType()),
                     new ColumnMetadata("id", BIGINT),
                     new ColumnMetadata("body", createUnboundedVarcharType()),
                     new ColumnMetadata("user_id", BIGINT),
@@ -447,6 +453,8 @@ public class GithubRest
             "))";
 
     public static final String ISSUES_TABLE_TYPE = "array(row(" +
+            "owner varchar, " +
+            "repo varchar, " +
             "id bigint, " +
             "number bigint, " +
             "state varchar, " +
@@ -470,6 +478,8 @@ public class GithubRest
             "))";
 
     public static final String ISSUE_COMMENTS_TABLE_TYPE = "array(row(" +
+            "owner varchar, " +
+            "repo varchar, " +
             "id bigint, " +
             "body varchar, " +
             "user_id bigint, " +
@@ -517,6 +527,17 @@ public class GithubRest
             "))";
 
     private final Map<String, Map<String, ColumnHandle>> columnHandles;
+
+    private final Map<String, Map<String, FilterType>> supportedColumnFilters = new ImmutableMap.Builder<String, Map<String, FilterType>>()
+            .put("issues", ImmutableMap.of(
+                    "owner", FilterType.EQUAL,
+                    "repo", FilterType.EQUAL
+                    "updated_at", FilterType.GREATER_THAN_EQUAL))
+            .build();
+
+    private enum FilterType {
+        EQUAL, GREATER_THAN_EQUAL,
+    }
 
     public GithubRest(String token, String owner, String repo)
     {
@@ -683,48 +704,66 @@ public class GithubRest
 
     private Optional<ConstraintApplicationResult<ConnectorTableHandle>> applyIssuesFilter(RestTableHandle table, TupleDomain<ColumnHandle> constraint)
     {
-        Map<String, ColumnHandle> columns = columnHandles.get(table.getSchemaTableName().getTableName());
-        TupleDomain<ColumnHandle> currentConstraint = table.getConstraint();
-
-        // TODO add owner and repo
-        if (currentConstraint.getDomains().isPresent()) {
-            if (currentConstraint.getDomains().get().containsKey(columns.get("updated_at"))) {
-                // can push down only the first predicate against this column
-                // TODO this is not correct, choose lowest value
-                return Optional.empty();
-            }
-        }
-        TupleDomain<ColumnHandle> newConstraint = constraint.filter(
-                (columnHandle, domain) -> columnHandle.equals(columns.get("updated_at")));
-        if (newConstraint.getDomains().isPresent()) {
-            Domain domain = newConstraint.getDomains().get().get(columns.get("updated_at"));
-            // TODO figure out correct condition here to test against a left bounded range
-            // updated_at >= '2016-05-12 00:00:00Z' -> no change
-            // updated_at > '2016-05-12 00:00:00Z' -> updated_at >= '2016-05-12 00:00:01Z'
-            // updated_at = '2016-05-12 00:00:00Z' -> updated_at >= '2016-05-12 00:00:00Z'
-            // TODO does something like this already exist? simplify, intersect or union? need to be able to make this generic to support multiple attributes
-            if (!domain.isSingleValue()) {
-                // can push down only left bounded range predicates against this column
-                return Optional.empty();
-            }
-        }
-        TupleDomain<ColumnHandle> unenforcedConstraint = constraint.filter(
-                (columnHandle, domain) -> !columnHandle.equals(columns.get("updated_at")));
-
-        if (currentConstraint.isAll() && newConstraint.isAll()) {
+        if (constraint.isAll() || constraint.getDomains().isEmpty()) {
             return Optional.empty();
         }
-        if (currentConstraint.isAll()) {
-            currentConstraint = newConstraint;
+
+        String tableName = table.getSchemaTableName().getTableName();
+        Map<String, ColumnHandle> columns = columnHandles.get(tableName);
+        TupleDomain<ColumnHandle> currentConstraint = table.getConstraint();
+
+        boolean found = false;
+        for (Map.Entry<String, FilterType> entry : supportedColumnFilters.get(tableName).entrySet()) {
+            String columnName = entry.getKey();
+            FilterType supportedFilter = entry.getValue();
+            ColumnHandle column = columns.get(columnName);
+
+            Domain domain = constraint.getDomains().get().get(column);
+            if (domain == null) {
+                continue;
+            }
+            TupleDomain<ColumnHandle> newConstraint = constraint.filter(
+                    (columnHandle, tupleDomain) -> columnHandle.equals(column));
+            if (!domain.getType().isOrderable()) {
+                if (!domain.isSingleValue()) {
+                    continue;
+                }
+            } else {
+                Range span = domain.getValues().getRanges().getSpan();
+                if (!span.isLowUnbounded()) {
+                    continue;
+                }
+                // TODO fix this
+                newConstraint = TupleDomain.withColumnDomains(Map.of(column, Domain.multipleValues(domain.getType(), List.of(span.getLowBoundedValue(), null))));
+            }
+            if (currentConstraint.getDomains().isPresent() && currentConstraint.getDomains().get().containsKey(column)) {
+                if (currentConstraint.equals(newConstraint)) {
+                    continue;
+                }
+                if (supportedFilter == FilterType.EQUAL) {
+                    // can push down only the first predicate against this column
+                    throw new IllegalStateException("Already pushed down a predicate for " + columnName + " which only supports a single value");
+                }
+                // don't need to check for GREATER_THAN_EQUAL since there can only be a single left-bound range, so union would work
+            }
+            else if (currentConstraint.isAll()) {
+                currentConstraint = newConstraint;
+            }
+            else {
+                currentConstraint = TupleDomain.columnWiseUnion(currentConstraint, newConstraint);
+            }
+            constraint = constraint.filter(
+                    (columnHandle, tupleDomain) -> !columnHandle.equals(column));
+            found = true;
         }
-        else if (!newConstraint.isAll()) {
-            currentConstraint = TupleDomain.columnWiseUnion(currentConstraint, newConstraint);
+        if (!found) {
+            return Optional.empty();
         }
 
         return Optional.of(new ConstraintApplicationResult<>(
                 new RestTableHandle(
                         table.getSchemaTableName(),
                         currentConstraint),
-                unenforcedConstraint));
+                constraint));
     }
 }

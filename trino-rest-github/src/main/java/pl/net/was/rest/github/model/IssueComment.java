@@ -28,6 +28,8 @@ import static io.trino.spi.type.BigintType.BIGINT;
 public class IssueComment
         extends BaseBlockWriter
 {
+    private String owner;
+    private String repo;
     private final long id;
     private final String url;
     private final String htmlUrl;
@@ -60,9 +62,21 @@ public class IssueComment
         this.authorAssociation = authorAssociation;
     }
 
+    public void setOwner(String owner)
+    {
+        this.owner = owner;
+    }
+
+    public void setRepo(String repo)
+    {
+        this.repo = repo;
+    }
+
     public List<?> toRow()
     {
         return ImmutableList.of(
+                owner,
+                repo,
                 id,
                 body,
                 user.getId(),
@@ -76,6 +90,8 @@ public class IssueComment
     public void writeTo(BlockBuilder rowBuilder)
     {
         // TODO this should be a map of column names to value getters and types should be fetched from GithubRest.columns
+        writeString(rowBuilder, owner);
+        writeString(rowBuilder, repo);
         BIGINT.writeLong(rowBuilder, id);
         writeString(rowBuilder, body);
         BIGINT.writeLong(rowBuilder, user.getId());
