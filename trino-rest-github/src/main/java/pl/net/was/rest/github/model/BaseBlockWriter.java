@@ -16,14 +16,21 @@ package pl.net.was.rest.github.model;
 
 import io.trino.spi.block.BlockBuilder;
 import io.trino.spi.type.DateTimeEncoding;
+import io.trino.spi.type.TimeZoneKey;
 
+import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 
+import static io.trino.spi.type.DateTimeEncoding.unpackMillisUtc;
+import static io.trino.spi.type.DateTimeEncoding.unpackZoneKey;
 import static io.trino.spi.type.TimestampWithTimeZoneType.TIMESTAMP_TZ_SECONDS;
 import static io.trino.spi.type.Timestamps.MILLISECONDS_PER_SECOND;
 import static io.trino.spi.type.Timestamps.NANOSECONDS_PER_MILLISECOND;
 import static io.trino.spi.type.Timestamps.roundDiv;
 import static io.trino.spi.type.VarcharType.VARCHAR;
+import static java.lang.Math.floorDiv;
+import static java.lang.Math.floorMod;
 
 abstract class BaseBlockWriter
         implements BlockWriter
@@ -56,5 +63,16 @@ abstract class BaseBlockWriter
             return;
         }
         TIMESTAMP_TZ_SECONDS.writeLong(rowBuilder, packTimestamp(value));
+    }
+
+    protected static ZonedDateTime fromTrinoTimestamp(long timestampWithTimeZone)
+    {
+        TimeZoneKey zoneKey = unpackZoneKey(timestampWithTimeZone);
+        long millis = unpackMillisUtc(timestampWithTimeZone);
+
+        long epochSecond = floorDiv(millis, MILLISECONDS_PER_SECOND);
+        int nanoFraction = floorMod(millis, MILLISECONDS_PER_SECOND) * NANOSECONDS_PER_MILLISECOND;
+        Instant instant = Instant.ofEpochSecond(epochSecond, nanoFraction);
+        return ZonedDateTime.ofInstant(instant, zoneKey.getZoneId()).withZoneSameInstant(ZoneId.of("UTC"));
     }
 }

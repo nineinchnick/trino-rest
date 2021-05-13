@@ -87,6 +87,12 @@
             <version>1.6</version>
         </dependency>
 
+        <dependency>
+            <groupId>io.trino</groupId>
+            <artifactId>trino-main</artifactId>
+            <version>355</version>
+        </dependency>
+
         <!-- for running PageSaver -->
         <dependency>
             <groupId>io.trino</groupId>

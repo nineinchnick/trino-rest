@@ -23,6 +23,7 @@ import io.trino.spi.connector.ConnectorOutputMetadata;
 import io.trino.spi.connector.ConnectorSession;
 import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.ConnectorTableMetadata;
+import io.trino.spi.connector.ConnectorTableProperties;
 import io.trino.spi.connector.Constraint;
 import io.trino.spi.connector.ConstraintApplicationResult;
 import io.trino.spi.connector.SchemaTableName;
@@ -57,7 +58,7 @@ public class RestMetadata
     public ConnectorTableHandle getTableHandle(ConnectorSession connectorSession, SchemaTableName schemaTableName)
     {
         if (rest.listTables().contains(schemaTableName)) {
-            return new RestTableHandle(schemaTableName, TupleDomain.all());
+            return new RestTableHandle(schemaTableName, TupleDomain.none());
         }
         return null;
     }
@@ -87,6 +88,18 @@ public class RestMetadata
     {
         RestColumnHandle restColumnHandle = Types.checkType(columnHandle, RestColumnHandle.class, "columnHandle");
         return new ColumnMetadata(restColumnHandle.getName(), restColumnHandle.getType());
+    }
+
+    @Override
+    public boolean usesLegacyTableLayouts()
+    {
+        return false;
+    }
+
+    @Override
+    public ConnectorTableProperties getTableProperties(ConnectorSession session, ConnectorTableHandle table)
+    {
+        return new ConnectorTableProperties();
     }
 
     @Override

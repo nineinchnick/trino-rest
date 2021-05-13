@@ -48,9 +48,7 @@ public class GithubPlugin
         return ImmutableList.of(new RestConnectorFactory(
                 "github",
                 config -> new GithubRest(
-                        config.get("token"),
-                        config.get("owner"),
-                        config.get("repo"))));
+                        config.get("token"))));
     }
 
     @Override

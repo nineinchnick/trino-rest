@@ -23,7 +23,6 @@ import io.trino.spi.connector.ConnectorHandleResolver;
 import io.trino.spi.connector.ConnectorInsertTableHandle;
 import io.trino.spi.connector.ConnectorSplit;
 import io.trino.spi.connector.ConnectorTableHandle;
-import io.trino.spi.connector.ConnectorTableLayoutHandle;
 import io.trino.spi.connector.ConnectorTransactionHandle;
 
 import java.util.Map;
@@ -72,11 +71,6 @@ public class RestConnectorFactory
             public Class<? extends ConnectorSplit> getSplitClass()
             {
                 return RestConnectorSplit.class;
-            }
-
-            public Class<? extends ConnectorTableLayoutHandle> getTableLayoutHandleClass()
-            {
-                return RestConnectorTableLayoutHandle.class;
             }
 
             @Override

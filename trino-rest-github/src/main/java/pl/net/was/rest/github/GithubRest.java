@@ -14,10 +14,12 @@
 
 package pl.net.was.rest.github;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.airlift.slice.Slice;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ColumnMetadata;
 import io.trino.spi.connector.ConnectorSession;
@@ -27,28 +29,33 @@ import io.trino.spi.connector.Constraint;
 import io.trino.spi.connector.ConstraintApplicationResult;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SchemaTablePrefix;
-import io.trino.spi.predicate.Domain;
-import io.trino.spi.predicate.Range;
 import io.trino.spi.predicate.TupleDomain;
 import io.trino.spi.type.ArrayType;
 import io.trino.spi.type.RowType;
 import io.trino.spi.type.TimestampWithTimeZoneType;
+import okhttp3.Cache;
+import okhttp3.OkHttpClient;
+import okhttp3.logging.HttpLoggingInterceptor;
 import pl.net.was.rest.Rest;
 import pl.net.was.rest.RestColumnHandle;
 import pl.net.was.rest.RestTableHandle;
+import pl.net.was.rest.github.function.BaseFunction;
+import pl.net.was.rest.github.model.FilterApplier;
 import pl.net.was.rest.github.model.Issue;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.jackson.JacksonConverterFactory;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.logging.Filter;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import static io.trino.spi.type.BigintType.BIGINT;
@@ -64,14 +71,7 @@ public class GithubRest
     public static final String SCHEMA_NAME = "default";
 
     private final String token;
-    // TODO replace these with pushing down predicates
-    private final String owner;
-    private final String repo;
-    private final GithubService service = new Retrofit.Builder()
-            .baseUrl("https://api.github.com/")
-            .addConverterFactory(JacksonConverterFactory.create())
-            .build()
-            .create(GithubService.class);
+    private final GithubService service = getService();
 
     public static final Map<String, List<ColumnMetadata>> columns = new ImmutableMap.Builder<String, List<ColumnMetadata>>()
             .put("orgs", ImmutableList.of(
@@ -528,22 +528,12 @@ public class GithubRest
 
     private final Map<String, Map<String, ColumnHandle>> columnHandles;
 
-    private final Map<String, Map<String, FilterType>> supportedColumnFilters = new ImmutableMap.Builder<String, Map<String, FilterType>>()
-            .put("issues", ImmutableMap.of(
-                    "owner", FilterType.EQUAL,
-                    "repo", FilterType.EQUAL
-                    "updated_at", FilterType.GREATER_THAN_EQUAL))
-            .build();
+    private final Map<String, FilterApplier> filterAppliers = ImmutableMap.of(
+            "issues", Issue::applyFilter);
 
-    private enum FilterType {
-        EQUAL, GREATER_THAN_EQUAL,
-    }
-
-    public GithubRest(String token, String owner, String repo)
+    public GithubRest(String token)
     {
         this.token = token;
-        this.owner = owner;
-        this.repo = repo;
 
         columnHandles = columns.keySet()
                 .stream()
@@ -554,6 +544,46 @@ public class GithubRest
                                 .collect(toMap(
                                         ColumnMetadata::getName,
                                         column -> new RestColumnHandle(column.getName(), column.getType())))));
+    }
+
+    public static GithubService getService()
+    {
+        OkHttpClient.Builder clientBuilder = new OkHttpClient.Builder();
+
+        // TODO make configurable?
+        Path cacheDir = Paths.get(System.getProperty("java.io.tmpdir"), "trino-rest-cache");
+        clientBuilder.cache(new Cache(cacheDir.toFile(), 10 * 1024 * 1024));
+
+        if (getLogLevel().intValue() <= Level.FINE.intValue()) {
+            HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
+            interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+            clientBuilder.addInterceptor(interceptor);
+        }
+
+        return new Retrofit.Builder()
+                .baseUrl("https://api.github.com/")
+                .client(clientBuilder.build())
+                .addConverterFactory(JacksonConverterFactory.create(
+                        new ObjectMapper()
+                                .registerModule(new Jdk8Module())
+                                .registerModule(new JavaTimeModule())))
+                .build()
+                .create(GithubService.class);
+    }
+
+    private static Level getLogLevel()
+    {
+        String loggerName = BaseFunction.class.getName();
+        Logger logger = Logger.getLogger(loggerName);
+        Level level = logger.getLevel();
+        while (level == null) {
+            Logger parent = logger.getParent();
+            if (parent == null) {
+                return Level.OFF;
+            }
+            level = parent.getLevel();
+        }
+        return level;
     }
 
     @Override
@@ -629,20 +659,17 @@ public class GithubRest
 
     private Collection<? extends List<?>> getIssues(TupleDomain<ColumnHandle> constraint)
     {
+        Map<String, ColumnHandle> columns = columnHandles.get("issues");
+        String owner = Issue.getFilter((RestColumnHandle) columns.get("owner"), constraint);
+        String repo = Issue.getFilter((RestColumnHandle) columns.get("repo"), constraint);
+        String since = Issue.getFilter((RestColumnHandle) columns.get("updated_at"), constraint);
+
         ImmutableList.Builder<List<?>> result = new ImmutableList.Builder<>();
 
         int page = 1;
         while (true) {
             Response<List<Issue>> response;
             try {
-                String since = "0000-00-00T00:00:00Z";
-                if (constraint.getDomains().isPresent()) {
-                    // TODO add owner and repo, throw an exception if they're missing
-                    Domain domain = constraint.getDomains().get().get(columnHandles.get("issues").get("updated_at"));
-                    if (domain != null) {
-                        since = ((Slice) domain.getSingleValue()).toStringUtf8();
-                    }
-                }
                 response = service.listIssues("Bearer " + token, owner, repo, 100, page++, since).execute();
             }
             catch (IOException e) {
@@ -658,6 +685,8 @@ public class GithubRest
             if (issues == null || issues.size() == 0) {
                 break;
             }
+            issues.forEach(i -> i.setOwner(owner));
+            issues.forEach(i -> i.setRepo(repo));
             result.addAll(issues.stream().map(Issue::toRow).collect(toList()));
         }
 
@@ -693,77 +722,11 @@ public class GithubRest
     public Optional<ConstraintApplicationResult<ConnectorTableHandle>> applyFilter(ConnectorSession session, ConnectorTableHandle table, Constraint constraint)
     {
         RestTableHandle restTable = (RestTableHandle) table;
+        String tableName = restTable.getSchemaTableName().getTableName();
 
-        // TODO this should be a map to a function
-        if (restTable.getSchemaTableName().getTableName().equals("issues")) {
-            return applyIssuesFilter(restTable, constraint.getSummary());
-        }
-
-        return Optional.empty();
-    }
-
-    private Optional<ConstraintApplicationResult<ConnectorTableHandle>> applyIssuesFilter(RestTableHandle table, TupleDomain<ColumnHandle> constraint)
-    {
-        if (constraint.isAll() || constraint.getDomains().isEmpty()) {
+        if (!filterAppliers.containsKey(tableName)) {
             return Optional.empty();
         }
-
-        String tableName = table.getSchemaTableName().getTableName();
-        Map<String, ColumnHandle> columns = columnHandles.get(tableName);
-        TupleDomain<ColumnHandle> currentConstraint = table.getConstraint();
-
-        boolean found = false;
-        for (Map.Entry<String, FilterType> entry : supportedColumnFilters.get(tableName).entrySet()) {
-            String columnName = entry.getKey();
-            FilterType supportedFilter = entry.getValue();
-            ColumnHandle column = columns.get(columnName);
-
-            Domain domain = constraint.getDomains().get().get(column);
-            if (domain == null) {
-                continue;
-            }
-            TupleDomain<ColumnHandle> newConstraint = constraint.filter(
-                    (columnHandle, tupleDomain) -> columnHandle.equals(column));
-            if (!domain.getType().isOrderable()) {
-                if (!domain.isSingleValue()) {
-                    continue;
-                }
-            } else {
-                Range span = domain.getValues().getRanges().getSpan();
-                if (!span.isLowUnbounded()) {
-                    continue;
-                }
-                // TODO fix this
-                newConstraint = TupleDomain.withColumnDomains(Map.of(column, Domain.multipleValues(domain.getType(), List.of(span.getLowBoundedValue(), null))));
-            }
-            if (currentConstraint.getDomains().isPresent() && currentConstraint.getDomains().get().containsKey(column)) {
-                if (currentConstraint.equals(newConstraint)) {
-                    continue;
-                }
-                if (supportedFilter == FilterType.EQUAL) {
-                    // can push down only the first predicate against this column
-                    throw new IllegalStateException("Already pushed down a predicate for " + columnName + " which only supports a single value");
-                }
-                // don't need to check for GREATER_THAN_EQUAL since there can only be a single left-bound range, so union would work
-            }
-            else if (currentConstraint.isAll()) {
-                currentConstraint = newConstraint;
-            }
-            else {
-                currentConstraint = TupleDomain.columnWiseUnion(currentConstraint, newConstraint);
-            }
-            constraint = constraint.filter(
-                    (columnHandle, tupleDomain) -> !columnHandle.equals(column));
-            found = true;
-        }
-        if (!found) {
-            return Optional.empty();
-        }
-
-        return Optional.of(new ConstraintApplicationResult<>(
-                new RestTableHandle(
-                        table.getSchemaTableName(),
-                        currentConstraint),
-                constraint));
+        return filterAppliers.get(tableName).applyFilter(restTable, columnHandles.get(tableName), constraint.getSummary());
     }
 }
