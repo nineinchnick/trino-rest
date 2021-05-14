@@ -28,6 +28,8 @@ import static io.trino.spi.type.BigintType.BIGINT;
 public class Review
         extends BaseBlockWriter
 {
+    private String owner;
+    private String repo;
     private final long id;
     private long pullNumber;
     private final User user;
@@ -61,9 +63,26 @@ public class Review
         this.authorAssociation = authorAssociation;
     }
 
+    public void setOwner(String owner)
+    {
+        this.owner = owner;
+    }
+
+    public void setRepo(String repo)
+    {
+        this.repo = repo;
+    }
+
+    public void setPullNumber(long pullNumber)
+    {
+        this.pullNumber = pullNumber;
+    }
+
     public List<?> toRow()
     {
         return ImmutableList.of(
+                owner,
+                repo,
                 id,
                 pullNumber,
                 user.getId(),
@@ -78,6 +97,8 @@ public class Review
     @Override
     public void writeTo(BlockBuilder rowBuilder)
     {
+        writeString(rowBuilder, owner);
+        writeString(rowBuilder, repo);
         BIGINT.writeLong(rowBuilder, id);
         BIGINT.writeLong(rowBuilder, pullNumber);
         BIGINT.writeLong(rowBuilder, user.getId());
@@ -87,10 +108,5 @@ public class Review
         writeTimestamp(rowBuilder, submittedAt);
         writeString(rowBuilder, commitId);
         writeString(rowBuilder, authorAssociation);
-    }
-
-    public void setPullNumber(long pullNumber)
-    {
-        this.pullNumber = pullNumber;
     }
 }

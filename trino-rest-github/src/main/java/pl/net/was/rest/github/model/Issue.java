@@ -17,29 +17,14 @@ package pl.net.was.rest.github.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import io.airlift.slice.Slice;
 import io.trino.spi.block.BlockBuilder;
-import io.trino.spi.connector.ColumnHandle;
-import io.trino.spi.connector.ConnectorTableHandle;
-import io.trino.spi.connector.ConstraintApplicationResult;
-import io.trino.spi.predicate.Domain;
-import io.trino.spi.predicate.Range;
-import io.trino.spi.predicate.TupleDomain;
-import io.trino.spi.predicate.ValueSet;
-import pl.net.was.rest.RestColumnHandle;
-import pl.net.was.rest.RestTableHandle;
 
 import java.time.ZonedDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
 import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.BooleanType.BOOLEAN;
 import static io.trino.spi.type.VarcharType.VARCHAR;
-import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Issue
@@ -211,146 +196,5 @@ public class Issue
         writeTimestamp(rowBuilder, createdAt);
         writeTimestamp(rowBuilder, updatedAt);
         writeString(rowBuilder, authorAssociation);
-    }
-
-    private static final Map<String, FilterType> supportedColumnFilters = ImmutableMap.of(
-            "owner", FilterType.EQUAL,
-            "repo", FilterType.EQUAL,
-            "updated_at", FilterType.GREATER_THAN_EQUAL);
-
-    private enum FilterType
-    {
-        EQUAL, GREATER_THAN_EQUAL,
-    }
-
-    public static Optional<ConstraintApplicationResult<ConnectorTableHandle>> applyFilter(RestTableHandle table, Map<String, ColumnHandle> columns, TupleDomain<ColumnHandle> constraint)
-    {
-        // the only reason not to use isNone is so the linter doesn't complain about not checking an Optional
-        if (constraint.isAll() || constraint.getDomains().isEmpty()) {
-            return Optional.empty();
-        }
-
-        TupleDomain<ColumnHandle> currentConstraint = table.getConstraint();
-
-        boolean found = false;
-        for (String columnName : supportedColumnFilters.keySet()) {
-            ColumnHandle column = columns.get(columnName);
-
-            TupleDomain<ColumnHandle> newConstraint = normalizeConstraint((RestColumnHandle) column, constraint);
-            if (newConstraint == null || newConstraint.getDomains().isEmpty()) {
-                continue;
-            }
-            if (!validateConstraint((RestColumnHandle) column, currentConstraint, newConstraint)) {
-                continue;
-            }
-            // merge with other pushed down constraints
-            Domain domain = newConstraint.getDomains().get().get(column);
-            if (currentConstraint.getDomains().isEmpty()) {
-                currentConstraint = newConstraint;
-            }
-            else if (!currentConstraint.getDomains().get().containsKey(column)) {
-                Map<ColumnHandle, Domain> domains = new HashMap<>(currentConstraint.getDomains().get());
-                domains.put(column, domain);
-                currentConstraint = TupleDomain.withColumnDomains(domains);
-            } else {
-                currentConstraint.getDomains().get().get(column).union(domain);
-            }
-            found = true;
-            // remove from remaining constraints
-            constraint = constraint.filter(
-                    (columnHandle, tupleDomain) -> !columnHandle.equals(column));
-        }
-        if (!found) {
-            return Optional.empty();
-        }
-
-        return Optional.of(new ConstraintApplicationResult<>(
-                new RestTableHandle(
-                        table.getSchemaTableName(),
-                        currentConstraint),
-                constraint));
-    }
-
-    private static TupleDomain<ColumnHandle> normalizeConstraint(RestColumnHandle column, TupleDomain<ColumnHandle> constraint)
-    {
-        //noinspection OptionalGetWithoutIsPresent
-        Domain domain = constraint.getDomains().get().get(column);
-        if (domain == null) {
-            return null;
-        }
-        TupleDomain<ColumnHandle> newConstraint = constraint.filter(
-                (columnHandle, tupleDomain) -> columnHandle.equals(column));
-        if (!domain.getType().isOrderable()) {
-            if (!domain.isSingleValue()) {
-                // none of the upstream filters supports multiple values
-                return null;
-            }
-            return newConstraint;
-        }
-        FilterType supportedFilter = supportedColumnFilters.get(column.getName());
-        switch (supportedFilter) {
-            case GREATER_THAN_EQUAL:
-                // normalize the constraint into a low-bound range
-                Range span = domain.getValues().getRanges().getSpan();
-                if (span.isLowUnbounded()) {
-                    return null;
-                }
-                newConstraint = TupleDomain.withColumnDomains(Map.of(
-                        column,
-                        Domain.create(
-                                ValueSet.ofRanges(
-                                        Range.greaterThanOrEqual(
-                                                domain.getType(),
-                                                span.getLowBoundedValue())),
-                                false)));
-                break;
-            case EQUAL:
-                if (!domain.isSingleValue()) {
-                    // none of the upstream filters supports multiple values
-                    return null;
-                }
-                break;
-        }
-        return newConstraint;
-    }
-
-    private static boolean validateConstraint(RestColumnHandle column, TupleDomain<ColumnHandle> currentConstraint, TupleDomain<ColumnHandle> newConstraint)
-    {
-        if (currentConstraint.getDomains().isEmpty() || !currentConstraint.getDomains().get().containsKey(column)) {
-            return true;
-        }
-        Domain currentDomain = currentConstraint.getDomains().get().get(column);
-        Domain newDomain = newConstraint.getDomains().get().get(column);
-        if (currentDomain.equals(newDomain)) {
-            // it is important to avoid processing same constraint multiple times
-            // so that planner doesn't get stuck in a loop
-            return false;
-        }
-        FilterType supportedFilter = supportedColumnFilters.get(column.getName());
-        if (supportedFilter == FilterType.EQUAL) {
-            // can push down only the first predicate against this column
-            throw new IllegalStateException("Already pushed down a predicate for " + column.getName() + " which only supports a single value");
-        }
-        // don't need to check for GREATER_THAN_EQUAL since there can only be a single low-bound range, so union would work
-        return true;
-    }
-
-    public static String getFilter(RestColumnHandle column, TupleDomain<ColumnHandle> constraint)
-    {
-        Domain domain = null;
-        if (constraint.getDomains().isPresent()) {
-            domain = constraint.getDomains().get().get(column);
-        }
-        if ("updated_at".equals(column.getName())) {
-            if (domain == null) {
-                return "1970-01-01T00:00:00Z";
-            }
-            long since = (long) domain.getValues().getRanges().getSpan().getLowBoundedValue();
-            return ISO_LOCAL_DATE_TIME.format(fromTrinoTimestamp(since)) + "Z";
-        }
-        if (domain == null) {
-            throw new IllegalArgumentException("Missing required constraint for " + column.getName());
-        }
-        return ((Slice) domain.getSingleValue()).toStringUtf8();
     }
 }

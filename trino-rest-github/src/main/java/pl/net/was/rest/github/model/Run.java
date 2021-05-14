@@ -29,6 +29,8 @@ import static io.trino.spi.type.VarcharType.VARCHAR;
 public class Run
         extends BaseBlockWriter
 {
+    private String owner;
+    private String repo;
     private final long id;
     private final String name;
     private final String nodeId;
@@ -70,9 +72,21 @@ public class Run
         this.updatedAt = updatedAt;
     }
 
+    public void setOwner(String owner)
+    {
+        this.owner = owner;
+    }
+
+    public void setRepo(String repo)
+    {
+        this.repo = repo;
+    }
+
     public List<?> toRow()
     {
         return ImmutableList.of(
+                owner,
+                repo,
                 id,
                 name,
                 nodeId,
@@ -90,6 +104,8 @@ public class Run
     @Override
     public void writeTo(BlockBuilder rowBuilder)
     {
+        writeString(rowBuilder, owner);
+        writeString(rowBuilder, repo);
         BIGINT.writeLong(rowBuilder, id);
         VARCHAR.writeString(rowBuilder, name);
         VARCHAR.writeString(rowBuilder, nodeId);

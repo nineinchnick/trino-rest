@@ -18,20 +18,19 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.trino.spi.block.BlockBuilder;
-import io.trino.spi.connector.ColumnMetadata;
-import pl.net.was.rest.github.GithubRest;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.BooleanType.BOOLEAN;
+import static io.trino.spi.type.VarcharType.VARCHAR;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class PullCommit
         extends BaseBlockWriter
 {
+    private String owner;
+    private String repo;
     private long pullNumber;
     private final String url;
     private final String sha;
@@ -62,9 +61,26 @@ public class PullCommit
         this.parents = parents;
     }
 
+    public void setOwner(String owner)
+    {
+        this.owner = owner;
+    }
+
+    public void setRepo(String repo)
+    {
+        this.repo = repo;
+    }
+
+    public void setPullNumber(long pullNumber)
+    {
+        this.pullNumber = pullNumber;
+    }
+
     public List<?> toRow()
     {
         return ImmutableList.of(
+                owner,
+                repo,
                 sha,
                 pullNumber,
                 commit,
@@ -76,9 +92,8 @@ public class PullCommit
     @Override
     public void writeTo(BlockBuilder rowBuilder)
     {
-        Map<String, ColumnMetadata> columns = GithubRest.columns.get("issues").stream()
-                .collect(Collectors.toMap(ColumnMetadata::getName, columnMetadata -> columnMetadata));
-
+        writeString(rowBuilder, owner);
+        writeString(rowBuilder, repo);
         writeString(rowBuilder, sha);
         BIGINT.writeLong(rowBuilder, pullNumber);
         writeString(rowBuilder, commit.getMessage());
@@ -98,15 +113,10 @@ public class PullCommit
         writeString(rowBuilder, committer.getLogin());
 
         // parents array
-        BlockBuilder parentShas = columns.get("label_names").getType().createBlockBuilder(null, parents.size());
+        BlockBuilder parentShas = VARCHAR.createBlockBuilder(null, parents.size());
         for (Ref parent : parents) {
             writeString(parentShas, parent.getSha());
         }
         rowBuilder.appendStructure(parentShas.build());
-    }
-
-    public void setPullNumber(long pullNumber)
-    {
-        this.pullNumber = pullNumber;
     }
 }

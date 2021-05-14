@@ -28,6 +28,8 @@ import static io.trino.spi.type.BigintType.BIGINT;
 public class Job
         extends BaseBlockWriter
 {
+    private String owner;
+    private String repo;
     private final long id;
     private final long runId;
     private final String runUrl;
@@ -76,9 +78,23 @@ public class Job
         this.checkRunUrl = checkRunUrl;
     }
 
+    public void setOwner(String owner)
+    {
+        this.owner = owner;
+        steps.forEach(s -> s.setOwner(owner));
+    }
+
+    public void setRepo(String repo)
+    {
+        this.repo = repo;
+        steps.forEach(s -> s.setRepo(repo));
+    }
+
     public List<?> toRow()
     {
         return ImmutableList.of(
+                owner,
+                repo,
                 id,
                 runId,
                 nodeId,
@@ -94,6 +110,8 @@ public class Job
     @Override
     public void writeTo(BlockBuilder rowBuilder)
     {
+        writeString(rowBuilder, owner);
+        writeString(rowBuilder, repo);
         BIGINT.writeLong(rowBuilder, id);
         BIGINT.writeLong(rowBuilder, runId);
         writeString(rowBuilder, nodeId);

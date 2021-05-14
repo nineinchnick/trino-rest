@@ -29,6 +29,8 @@ import static io.trino.spi.type.VarcharType.VARCHAR;
 public class Step
         extends BaseBlockWriter
 {
+    private String owner;
+    private String repo;
     private long jobId;
     private final String name;
     private final String status;
@@ -53,9 +55,26 @@ public class Step
         this.completedAt = completedAt;
     }
 
+    public void setOwner(String owner)
+    {
+        this.owner = owner;
+    }
+
+    public void setRepo(String repo)
+    {
+        this.repo = repo;
+    }
+
+    public void setJobId(long jobId)
+    {
+        this.jobId = jobId;
+    }
+
     public List<?> toRow()
     {
         return ImmutableList.of(
+                owner,
+                repo,
                 jobId,
                 name,
                 status,
@@ -68,6 +87,8 @@ public class Step
     @Override
     public void writeTo(BlockBuilder rowBuilder)
     {
+        writeString(rowBuilder, owner);
+        writeString(rowBuilder, repo);
         BIGINT.writeLong(rowBuilder, jobId);
         VARCHAR.writeString(rowBuilder, name);
         writeString(rowBuilder, status);
@@ -75,10 +96,5 @@ public class Step
         BIGINT.writeLong(rowBuilder, number);
         writeTimestamp(rowBuilder, startedAt);
         writeTimestamp(rowBuilder, completedAt);
-    }
-
-    public void setJobId(long jobId)
-    {
-        this.jobId = jobId;
     }
 }

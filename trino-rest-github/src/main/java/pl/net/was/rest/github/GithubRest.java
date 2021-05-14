@@ -39,9 +39,22 @@ import okhttp3.logging.HttpLoggingInterceptor;
 import pl.net.was.rest.Rest;
 import pl.net.was.rest.RestColumnHandle;
 import pl.net.was.rest.RestTableHandle;
+import pl.net.was.rest.github.filter.FilterApplier;
+import pl.net.was.rest.github.filter.IssueCommentFilter;
+import pl.net.was.rest.github.filter.IssueFilter;
+import pl.net.was.rest.github.filter.JobFilter;
+import pl.net.was.rest.github.filter.PullCommitFilter;
+import pl.net.was.rest.github.filter.PullFilter;
+import pl.net.was.rest.github.filter.ReviewCommentFilter;
+import pl.net.was.rest.github.filter.ReviewFilter;
+import pl.net.was.rest.github.filter.RunFilter;
+import pl.net.was.rest.github.filter.StepFilter;
 import pl.net.was.rest.github.function.BaseFunction;
-import pl.net.was.rest.github.model.FilterApplier;
-import pl.net.was.rest.github.model.Issue;
+import pl.net.was.rest.github.model.Envelope;
+import pl.net.was.rest.github.model.Job;
+import pl.net.was.rest.github.model.JobsList;
+import pl.net.was.rest.github.model.Step;
+import retrofit2.Call;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.jackson.JacksonConverterFactory;
@@ -52,8 +65,11 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.IntFunction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -140,6 +156,8 @@ public class GithubRest
                     new ColumnMetadata("fork", BOOLEAN),
                     new ColumnMetadata("url", createUnboundedVarcharType())))
             .put("pulls", ImmutableList.of(
+                    new ColumnMetadata("owner", createUnboundedVarcharType()),
+                    new ColumnMetadata("repo", createUnboundedVarcharType()),
                     new ColumnMetadata("id", BIGINT),
                     new ColumnMetadata("number", BIGINT),
                     new ColumnMetadata("state", createUnboundedVarcharType()),
@@ -169,6 +187,8 @@ public class GithubRest
                     new ColumnMetadata("author_association", createUnboundedVarcharType()),
                     new ColumnMetadata("draft", BOOLEAN)))
             .put("pull_commits", ImmutableList.of(
+                    new ColumnMetadata("owner", createUnboundedVarcharType()),
+                    new ColumnMetadata("repo", createUnboundedVarcharType()),
                     new ColumnMetadata("sha", createUnboundedVarcharType()),
                     // this column is filled in from request params, it is not returned by the api
                     new ColumnMetadata("pull_number", BIGINT),
@@ -189,6 +209,8 @@ public class GithubRest
                     new ColumnMetadata("committer_login", createUnboundedVarcharType()),
                     new ColumnMetadata("parent_shas", new ArrayType(createUnboundedVarcharType()))))
             .put("reviews", ImmutableList.of(
+                    new ColumnMetadata("owner", createUnboundedVarcharType()),
+                    new ColumnMetadata("repo", createUnboundedVarcharType()),
                     new ColumnMetadata("id", BIGINT),
                     // this column is filled in from request params, it is not returned by the api
                     new ColumnMetadata("pull_number", BIGINT),
@@ -200,6 +222,8 @@ public class GithubRest
                     new ColumnMetadata("commit_id", createUnboundedVarcharType()),
                     new ColumnMetadata("author_association", createUnboundedVarcharType())))
             .put("review_comments", ImmutableList.of(
+                    new ColumnMetadata("owner", createUnboundedVarcharType()),
+                    new ColumnMetadata("repo", createUnboundedVarcharType()),
                     new ColumnMetadata("pull_request_review_id", BIGINT),
                     new ColumnMetadata("id", BIGINT),
                     new ColumnMetadata("diff_hunk", createUnboundedVarcharType()),
@@ -255,6 +279,8 @@ public class GithubRest
                     new ColumnMetadata("updated_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
                     new ColumnMetadata("author_association", createUnboundedVarcharType())))
             .put("runs", ImmutableList.of(
+                    new ColumnMetadata("owner", createUnboundedVarcharType()),
+                    new ColumnMetadata("repo", createUnboundedVarcharType()),
                     new ColumnMetadata("id", BIGINT),
                     new ColumnMetadata("name", createUnboundedVarcharType()),
                     new ColumnMetadata("node_id", createUnboundedVarcharType()),
@@ -268,6 +294,8 @@ public class GithubRest
                     new ColumnMetadata("created_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
                     new ColumnMetadata("updated_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3))))
             .put("jobs", ImmutableList.of(
+                    new ColumnMetadata("owner", createUnboundedVarcharType()),
+                    new ColumnMetadata("repo", createUnboundedVarcharType()),
                     new ColumnMetadata("id", BIGINT),
                     new ColumnMetadata("run_id", BIGINT),
                     new ColumnMetadata("node_id", createUnboundedVarcharType()),
@@ -278,7 +306,8 @@ public class GithubRest
                     new ColumnMetadata("completed_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
                     new ColumnMetadata("name", createUnboundedVarcharType())))
             .put("steps", ImmutableList.of(
-                    // this column is filled in from request params, it is not returned by the api
+                    new ColumnMetadata("owner", createUnboundedVarcharType()),
+                    new ColumnMetadata("repo", createUnboundedVarcharType()),
                     new ColumnMetadata("job_id", BIGINT),
                     new ColumnMetadata("name", createUnboundedVarcharType()),
                     new ColumnMetadata("status", createUnboundedVarcharType()),
@@ -528,8 +557,17 @@ public class GithubRest
 
     private final Map<String, Map<String, ColumnHandle>> columnHandles;
 
-    private final Map<String, FilterApplier> filterAppliers = ImmutableMap.of(
-            "issues", Issue::applyFilter);
+    private final Map<String, ? extends FilterApplier> filterAppliers = new ImmutableMap.Builder<String, FilterApplier>()
+            .put("pulls", new PullFilter())
+            .put("pull_commits", new PullCommitFilter())
+            .put("reviews", new ReviewFilter())
+            .put("review_comments", new ReviewCommentFilter())
+            .put("issues", new IssueFilter())
+            .put("issue_comments", new IssueCommentFilter())
+            .put("runs", new RunFilter())
+            .put("jobs", new JobFilter())
+            .put("steps", new StepFilter())
+            .build();
 
     public GithubRest(String token)
     {
@@ -623,54 +661,164 @@ public class GithubRest
     @Override
     public Collection<? extends List<?>> getRows(RestTableHandle table)
     {
-        SchemaTableName schemaTableName = table.getSchemaTableName();
-        // don't implement any API that has pagination, just expose functions to fetch that data
-        // and put it into tables in other persistent dbs
-        // TODO support predicate pushdown and allow more endpoints when all required params are present
-        // TODO split manager should generate one split per page, but it has to know how many results there are
-        // TODO maybe call it with per_page=0 to get total? but also account for rate limits
-        switch (schemaTableName.getTableName()) {
+        switch (table.getSchemaTableName().getTableName()) {
             case "orgs":
                 throw new UnsupportedOperationException("Use orgs or org functions instead");
             case "repos":
                 throw new UnsupportedOperationException("Use repos, org_repos or user_repos functions instead");
             case "pulls":
-                throw new UnsupportedOperationException("Use pulls function instead");
+                return getPulls(table);
             case "pull_commits":
-                throw new UnsupportedOperationException("Use pull_commits function instead");
+                return getPullCommits(table);
             case "reviews":
-                throw new UnsupportedOperationException("Use reviews function instead");
+                return getReviews(table);
             case "review_comments":
-                throw new UnsupportedOperationException("Use review_comments function instead");
+                return getReviewComments(table);
             case "issues":
-                // this is just an example and should not be used, see comments above
-                return getIssues(table.getConstraint());
+                return getIssues(table);
             case "issue_comments":
-                throw new UnsupportedOperationException("Use issue_comments function instead");
+                return getIssueComments(table);
             case "runs":
-                throw new UnsupportedOperationException("Use runs function instead");
+                return getRuns(table);
             case "jobs":
-                throw new UnsupportedOperationException("Use jobs function instead");
+                return getJobs(table);
             case "steps":
-                throw new UnsupportedOperationException("Use steps function instead");
+                return getSteps(table);
         }
         return null;
     }
 
-    private Collection<? extends List<?>> getIssues(TupleDomain<ColumnHandle> constraint)
+    private Collection<? extends List<?>> getPulls(RestTableHandle table)
     {
-        Map<String, ColumnHandle> columns = columnHandles.get("issues");
-        String owner = Issue.getFilter((RestColumnHandle) columns.get("owner"), constraint);
-        String repo = Issue.getFilter((RestColumnHandle) columns.get("repo"), constraint);
-        String since = Issue.getFilter((RestColumnHandle) columns.get("updated_at"), constraint);
+        String tableName = table.getSchemaTableName().getTableName();
+        TupleDomain<ColumnHandle> constraint = table.getConstraint();
+        Map<String, ColumnHandle> columns = columnHandles.get(tableName);
+        FilterApplier filter = filterAppliers.get(tableName);
 
-        ImmutableList.Builder<List<?>> result = new ImmutableList.Builder<>();
+        String owner = filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
+        String repo = filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
+        // TODO allow filtering by state (many, comma separated, or all)
+        return getRowsFromPages(
+                page -> service.listPulls("Bearer " + token, owner, repo, 100, page, "updated", "all"),
+                item -> {
+                    item.setOwner(owner);
+                    item.setRepo(repo);
+                    return item.toRow();
+                });
+    }
+
+    private Collection<? extends List<?>> getPullCommits(RestTableHandle table)
+    {
+        String tableName = table.getSchemaTableName().getTableName();
+        TupleDomain<ColumnHandle> constraint = table.getConstraint();
+        Map<String, ColumnHandle> columns = columnHandles.get(tableName);
+        FilterApplier filter = filterAppliers.get(tableName);
+
+        String owner = filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
+        String repo = filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
+        long number = filter.getLongFilter((RestColumnHandle) columns.get("pull_number"), constraint);
+        // TODO allow filtering by state (many, comma separated, or all)
+        return getRowsFromPages(
+                page -> service.listPullCommits("Bearer " + token, owner, repo, number, 100, page ),
+                item -> {
+                    item.setOwner(owner);
+                    item.setRepo(repo);
+                    return item.toRow();
+                });
+    }
+
+    private Collection<? extends List<?>> getIssues(RestTableHandle table)
+    {
+        String tableName = table.getSchemaTableName().getTableName();
+        TupleDomain<ColumnHandle> constraint = table.getConstraint();
+        Map<String, ColumnHandle> columns = columnHandles.get(tableName);
+        FilterApplier filter = filterAppliers.get(tableName);
+
+        String owner = filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
+        String repo = filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
+        String since = filter.getFilter((RestColumnHandle) columns.get("updated_at"), constraint);
+        return getRowsFromPages(
+                page -> service.listIssues("Bearer " + token, owner, repo, 100, page, since),
+                item -> {
+                    item.setOwner(owner);
+                    item.setRepo(repo);
+                    return item.toRow();
+                });
+    }
+
+    private Collection<? extends List<?>> getIssueComments(RestTableHandle table)
+    {
+        String tableName = table.getSchemaTableName().getTableName();
+        TupleDomain<ColumnHandle> constraint = table.getConstraint();
+        Map<String, ColumnHandle> columns = columnHandles.get(tableName);
+        FilterApplier filter = filterAppliers.get(tableName);
+
+        String owner = filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
+        String repo = filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
+        String since = filter.getFilter((RestColumnHandle) columns.get("updated_at"), constraint);
+        return getRowsFromPages(
+                page -> service.listIssueComments("Bearer " + token, owner, repo, 100, page, since),
+                item -> {
+                    item.setOwner(owner);
+                    item.setRepo(repo);
+                    return item.toRow();
+                });
+    }
+
+    private Collection<? extends List<?>> getRuns(RestTableHandle table)
+    {
+        String tableName = table.getSchemaTableName().getTableName();
+        TupleDomain<ColumnHandle> constraint = table.getConstraint();
+        Map<String, ColumnHandle> columns = columnHandles.get(tableName);
+        FilterApplier filter = filterAppliers.get(tableName);
+
+        String owner = filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
+        String repo = filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
+        return getRowsFromPagesEnvelope(
+                page -> service.listRuns("Bearer " + token, owner, repo, 100, page),
+                item -> {
+                    item.setOwner(owner);
+                    item.setRepo(repo);
+                    return item.toRow();
+                });
+    }
+
+    private Collection<? extends List<?>> getJobs(RestTableHandle table)
+    {
+        String tableName = table.getSchemaTableName().getTableName();
+        TupleDomain<ColumnHandle> constraint = table.getConstraint();
+        Map<String, ColumnHandle> columns = columnHandles.get(tableName);
+        FilterApplier filter = filterAppliers.get(tableName);
+
+        String owner = filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
+        String repo = filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
+        // TODO this needs to allow pushing down multiple run_id values and make a separate request for each
+        return getRowsFromPagesEnvelope(
+                page -> service.listJobs("Bearer " + token, owner, repo, "all", 100, page),
+                item -> {
+                    item.setOwner(owner);
+                    item.setRepo(repo);
+                    return item.toRow();
+                });
+    }
+
+    private Collection<? extends List<?>> getSteps(RestTableHandle table)
+    {
+        String tableName = table.getSchemaTableName().getTableName();
+        TupleDomain<ColumnHandle> constraint = table.getConstraint();
+        Map<String, ColumnHandle> columns = columnHandles.get(tableName);
+        FilterApplier filter = filterAppliers.get(tableName);
+
+        String owner = filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
+        String repo = filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
+
+        ImmutableList.Builder<Job> jobs = new ImmutableList.Builder<>();
 
         int page = 1;
         while (true) {
-            Response<List<Issue>> response;
+            Response<JobsList> response;
             try {
-                response = service.listIssues("Bearer " + token, owner, repo, 100, page++, since).execute();
+                response = service.listJobs("Bearer " + token, owner, repo, "all", 100, page++).execute();
             }
             catch (IOException e) {
                 throw Throwables.propagate(e);
@@ -681,13 +829,77 @@ public class GithubRest
             if (!response.isSuccessful()) {
                 throw new IllegalStateException("Unable to read: " + response.message());
             }
-            List<Issue> issues = response.body();
-            if (issues == null || issues.size() == 0) {
+            List<Job> items = Objects.requireNonNull(response.body()).getItems();
+            if (items == null || items.size() == 0) {
                 break;
             }
-            issues.forEach(i -> i.setOwner(owner));
-            issues.forEach(i -> i.setRepo(repo));
-            result.addAll(issues.stream().map(Issue::toRow).collect(toList()));
+            items.forEach(i -> i.setOwner(owner));
+            items.forEach(i -> i.setRepo(repo));
+            jobs.addAll(items);
+        }
+
+        ImmutableList.Builder<List<?>> result = new ImmutableList.Builder<>();
+        for (Job job : jobs.build()) {
+            Collection<List<?>> steps = job.getSteps().stream().map(Step::toRow).collect(toList());
+            result.addAll(steps);
+        }
+        return result.build();
+    }
+
+    // TODO this abomination should be in a base class implementing a cursor
+    private <T> Collection<? extends List<?>> getRowsFromPages(IntFunction<Call<List<T>>> fetcher, Function<T, List<?>> mapper)
+    {
+        ImmutableList.Builder<List<?>> result = new ImmutableList.Builder<>();
+
+        int page = 1;
+        while (true) {
+            Response<List<T>> response;
+            try {
+                response = fetcher.apply(page++).execute();
+            }
+            catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
+            if (response.code() == HTTP_NOT_FOUND) {
+                break;
+            }
+            if (!response.isSuccessful()) {
+                throw new IllegalStateException("Unable to read: " + response.message());
+            }
+            List<T> items = response.body();
+            if (items == null || items.size() == 0) {
+                break;
+            }
+            result.addAll(items.stream().map(mapper).collect(toList()));
+        }
+
+        return result.build();
+    }
+
+    private <T, E extends Envelope<T>> Collection<? extends List<?>> getRowsFromPagesEnvelope(IntFunction<Call<E>> fetcher, Function<T, List<?>> mapper)
+    {
+        ImmutableList.Builder<List<?>> result = new ImmutableList.Builder<>();
+
+        int page = 1;
+        while (true) {
+            Response<E> response;
+            try {
+                response = fetcher.apply(page++).execute();
+            }
+            catch (IOException e) {
+                throw Throwables.propagate(e);
+            }
+            if (response.code() == HTTP_NOT_FOUND) {
+                break;
+            }
+            if (!response.isSuccessful()) {
+                throw new IllegalStateException("Unable to read: " + response.message());
+            }
+            List<T> items = Objects.requireNonNull(response.body()).getItems();
+            if (items == null || items.size() == 0) {
+                break;
+            }
+            result.addAll(items.stream().map(mapper).collect(toList()));
         }
 
         return result.build();
@@ -724,9 +936,10 @@ public class GithubRest
         RestTableHandle restTable = (RestTableHandle) table;
         String tableName = restTable.getSchemaTableName().getTableName();
 
-        if (!filterAppliers.containsKey(tableName)) {
+        FilterApplier filterApplier = filterAppliers.get(tableName);
+        if (filterApplier == null) {
             return Optional.empty();
         }
-        return filterAppliers.get(tableName).applyFilter(restTable, columnHandles.get(tableName), constraint.getSummary());
+        return filterApplier.applyFilter(restTable, columnHandles.get(tableName), filterApplier.getSupportedFilters(), constraint.getSummary());
     }
 }

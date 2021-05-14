@@ -28,6 +28,7 @@ import retrofit2.Response;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 import static io.trino.spi.type.StandardTypes.INTEGER;
 import static io.trino.spi.type.StandardTypes.VARCHAR;
@@ -71,7 +72,7 @@ public class IssueComments
         if (!response.isSuccessful()) {
             throw new IllegalStateException(format("Invalid response, code %d, message: %s", response.code(), response.message()));
         }
-        List<IssueComment> items = response.body();
+        List<IssueComment> items = Objects.requireNonNull(response.body());
         items.forEach(i -> i.setOwner(owner.toStringUtf8()));
         items.forEach(i -> i.setRepo(repo.toStringUtf8()));
         return buildBlock(items);

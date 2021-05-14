@@ -23,6 +23,7 @@ import static java.util.Objects.requireNonNull;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class RunsList
+    implements Envelope<Run>
 {
     private final long totalCount;
     private final List<Run> workflowRuns;
@@ -41,7 +42,7 @@ public class RunsList
         return totalCount;
     }
 
-    public List<Run> getWorkflowRuns()
+    public List<Run> getItems()
     {
         return workflowRuns;
     }
