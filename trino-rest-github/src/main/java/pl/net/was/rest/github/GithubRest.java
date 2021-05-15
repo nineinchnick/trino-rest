@@ -695,8 +695,8 @@ public class GithubRest
         Map<String, ColumnHandle> columns = columnHandles.get(tableName);
         FilterApplier filter = filterAppliers.get(tableName);
 
-        String owner = filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
-        String repo = filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
+        String owner = (String) filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
+        String repo = (String) filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
         // TODO allow filtering by state (many, comma separated, or all)
         return getRowsFromPages(
                 page -> service.listPulls("Bearer " + token, owner, repo, 100, page, "updated", "all"),
@@ -714,12 +714,52 @@ public class GithubRest
         Map<String, ColumnHandle> columns = columnHandles.get(tableName);
         FilterApplier filter = filterAppliers.get(tableName);
 
-        String owner = filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
-        String repo = filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
-        long number = filter.getLongFilter((RestColumnHandle) columns.get("pull_number"), constraint);
+        String owner = (String) filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
+        String repo = (String) filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
+        long pullNumber = (long) filter.getFilter((RestColumnHandle) columns.get("pull_number"), constraint);
         // TODO allow filtering by state (many, comma separated, or all)
         return getRowsFromPages(
-                page -> service.listPullCommits("Bearer " + token, owner, repo, number, 100, page ),
+                page -> service.listPullCommits("Bearer " + token, owner, repo, pullNumber, 100, page),
+                item -> {
+                    item.setOwner(owner);
+                    item.setRepo(repo);
+                    item.setPullNumber(pullNumber);
+                    return item.toRow();
+                });
+    }
+
+    private Collection<? extends List<?>> getReviews(RestTableHandle table)
+    {
+        String tableName = table.getSchemaTableName().getTableName();
+        TupleDomain<ColumnHandle> constraint = table.getConstraint();
+        Map<String, ColumnHandle> columns = columnHandles.get(tableName);
+        FilterApplier filter = filterAppliers.get(tableName);
+
+        String owner = (String) filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
+        String repo = (String) filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
+        long pullNumber = (long) filter.getFilter((RestColumnHandle) columns.get("pull_number"), constraint);
+        return getRowsFromPages(
+                page -> service.listPullReviews("Bearer " + token, owner, repo, pullNumber, 100, page),
+                item -> {
+                    item.setOwner(owner);
+                    item.setRepo(repo);
+                    return item.toRow();
+                });
+    }
+
+    private Collection<? extends List<?>> getReviewComments(RestTableHandle table)
+    {
+        String tableName = table.getSchemaTableName().getTableName();
+        TupleDomain<ColumnHandle> constraint = table.getConstraint();
+        Map<String, ColumnHandle> columns = columnHandles.get(tableName);
+        FilterApplier filter = filterAppliers.get(tableName);
+
+        String owner = (String) filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
+        String repo = (String) filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
+        String since = (String) filter.getFilter((RestColumnHandle) columns.get("updated_at"), constraint);
+        // TODO allow filtering by pull number, this would require using a different endpoint
+        return getRowsFromPages(
+                page -> service.listReviewComments("Bearer " + token, owner, repo, 100, page, since),
                 item -> {
                     item.setOwner(owner);
                     item.setRepo(repo);
@@ -734,9 +774,9 @@ public class GithubRest
         Map<String, ColumnHandle> columns = columnHandles.get(tableName);
         FilterApplier filter = filterAppliers.get(tableName);
 
-        String owner = filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
-        String repo = filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
-        String since = filter.getFilter((RestColumnHandle) columns.get("updated_at"), constraint);
+        String owner = (String) filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
+        String repo = (String) filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
+        String since = (String) filter.getFilter((RestColumnHandle) columns.get("updated_at"), constraint);
         return getRowsFromPages(
                 page -> service.listIssues("Bearer " + token, owner, repo, 100, page, since),
                 item -> {
@@ -753,9 +793,9 @@ public class GithubRest
         Map<String, ColumnHandle> columns = columnHandles.get(tableName);
         FilterApplier filter = filterAppliers.get(tableName);
 
-        String owner = filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
-        String repo = filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
-        String since = filter.getFilter((RestColumnHandle) columns.get("updated_at"), constraint);
+        String owner = (String) filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
+        String repo = (String) filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
+        String since = (String) filter.getFilter((RestColumnHandle) columns.get("updated_at"), constraint);
         return getRowsFromPages(
                 page -> service.listIssueComments("Bearer " + token, owner, repo, 100, page, since),
                 item -> {
@@ -772,8 +812,8 @@ public class GithubRest
         Map<String, ColumnHandle> columns = columnHandles.get(tableName);
         FilterApplier filter = filterAppliers.get(tableName);
 
-        String owner = filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
-        String repo = filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
+        String owner = (String) filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
+        String repo = (String) filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
         return getRowsFromPagesEnvelope(
                 page -> service.listRuns("Bearer " + token, owner, repo, 100, page),
                 item -> {
@@ -790,8 +830,8 @@ public class GithubRest
         Map<String, ColumnHandle> columns = columnHandles.get(tableName);
         FilterApplier filter = filterAppliers.get(tableName);
 
-        String owner = filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
-        String repo = filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
+        String owner = (String) filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
+        String repo = (String) filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
         // TODO this needs to allow pushing down multiple run_id values and make a separate request for each
         return getRowsFromPagesEnvelope(
                 page -> service.listJobs("Bearer " + token, owner, repo, "all", 100, page),
@@ -809,8 +849,8 @@ public class GithubRest
         Map<String, ColumnHandle> columns = columnHandles.get(tableName);
         FilterApplier filter = filterAppliers.get(tableName);
 
-        String owner = filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
-        String repo = filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
+        String owner = (String) filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
+        String repo = (String) filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
 
         ImmutableList.Builder<Job> jobs = new ImmutableList.Builder<>();
 

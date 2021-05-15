@@ -12,6 +12,6 @@ public class PullCommitFilter
         return ImmutableMap.of(
                 "owner", FilterType.EQUAL,
                 "repo", FilterType.EQUAL,
-                "number", FilterType.EQUAL);
+                "pull_number", FilterType.EQUAL);
     }
 }

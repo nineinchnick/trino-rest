@@ -158,23 +158,35 @@ public interface FilterApplier
         return true;
     }
 
-    default String getFilter(RestColumnHandle column, TupleDomain<ColumnHandle> constraint)
+    default Object getFilter(RestColumnHandle column, TupleDomain<ColumnHandle> constraint)
     {
         Domain domain = null;
         if (constraint.getDomains().isPresent()) {
             domain = constraint.getDomains().get().get(column);
         }
-        if ("updated_at".equals(column.getName())) {
-            if (domain == null) {
-                return "1970-01-01T00:00:00Z";
-            }
-            long since = (long) domain.getValues().getRanges().getSpan().getLowBoundedValue();
-            return ISO_LOCAL_DATE_TIME.format(fromTrinoTimestamp(since)) + "Z";
+        // TODO don't use column names here, just types
+        switch (column.getName()) {
+            case "updated_at":
+                if (domain == null) {
+                    return "1970-01-01T00:00:00Z";
+                }
+                long since = (long) domain.getValues().getRanges().getSpan().getLowBoundedValue();
+                return ISO_LOCAL_DATE_TIME.format(fromTrinoTimestamp(since)) + "Z";
+            case "owner":
+            case "repo":
+            case "pull_number":
+                if (domain == null) {
+                    throw new IllegalArgumentException("Missing required constraint for " + column.getName());
+                }
+                return ((Slice) domain.getSingleValue()).toStringUtf8();
+            case "run_id":
+                if (domain == null) {
+                    return null;
+                }
+                return domain.getSingleValue();
+            default:
+                throw new IllegalArgumentException("Unexpected constraint for " + column.getName());
         }
-        if (domain == null) {
-            throw new IllegalArgumentException("Missing required constraint for " + column.getName());
-        }
-        return ((Slice) domain.getSingleValue()).toStringUtf8();
     }
 
     default ZonedDateTime fromTrinoTimestamp(long timestampWithTimeZone)
