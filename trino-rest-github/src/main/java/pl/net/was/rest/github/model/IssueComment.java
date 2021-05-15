@@ -81,8 +81,8 @@ public class IssueComment
                 body,
                 user.getId(),
                 user.getLogin(),
-                createdAt,
-                updatedAt,
+                packTimestamp(createdAt),
+                packTimestamp(updatedAt),
                 authorAssociation);
     }
 

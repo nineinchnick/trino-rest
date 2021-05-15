@@ -20,6 +20,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.trino.spi.TrinoException;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ColumnMetadata;
 import io.trino.spi.connector.ConnectorSession;
@@ -43,17 +44,23 @@ import pl.net.was.rest.github.filter.FilterApplier;
 import pl.net.was.rest.github.filter.IssueCommentFilter;
 import pl.net.was.rest.github.filter.IssueFilter;
 import pl.net.was.rest.github.filter.JobFilter;
+import pl.net.was.rest.github.filter.OrgFilter;
 import pl.net.was.rest.github.filter.PullCommitFilter;
 import pl.net.was.rest.github.filter.PullFilter;
+import pl.net.was.rest.github.filter.RepoFilter;
 import pl.net.was.rest.github.filter.ReviewCommentFilter;
 import pl.net.was.rest.github.filter.ReviewFilter;
 import pl.net.was.rest.github.filter.RunFilter;
 import pl.net.was.rest.github.filter.StepFilter;
+import pl.net.was.rest.github.filter.UserFilter;
 import pl.net.was.rest.github.function.BaseFunction;
 import pl.net.was.rest.github.model.Envelope;
 import pl.net.was.rest.github.model.Job;
 import pl.net.was.rest.github.model.JobsList;
+import pl.net.was.rest.github.model.Organization;
+import pl.net.was.rest.github.model.Repository;
 import pl.net.was.rest.github.model.Step;
+import pl.net.was.rest.github.model.User;
 import retrofit2.Call;
 import retrofit2.Response;
 import retrofit2.Retrofit;
@@ -70,10 +77,12 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+import static io.trino.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.BooleanType.BOOLEAN;
 import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
@@ -567,6 +576,9 @@ public class GithubRest
             .put("runs", new RunFilter())
             .put("jobs", new JobFilter())
             .put("steps", new StepFilter())
+            .put("orgs", new OrgFilter())
+            .put("users", new UserFilter())
+            .put("repos", new RepoFilter())
             .build();
 
     public GithubRest(String token)
@@ -663,9 +675,11 @@ public class GithubRest
     {
         switch (table.getSchemaTableName().getTableName()) {
             case "orgs":
-                throw new UnsupportedOperationException("Use orgs or org functions instead");
+                return getOrgs(table);
+            case "users":
+                return getUsers(table);
             case "repos":
-                throw new UnsupportedOperationException("Use repos, org_repos or user_repos functions instead");
+                return getRepos(table);
             case "pulls":
                 return getPulls(table);
             case "pull_commits":
@@ -686,6 +700,39 @@ public class GithubRest
                 return getSteps(table);
         }
         return null;
+    }
+
+    private Collection<? extends List<?>> getOrgs(RestTableHandle table)
+    {
+        String tableName = table.getSchemaTableName().getTableName();
+        Map<String, ColumnHandle> columns = columnHandles.get(tableName);
+        FilterApplier filter = filterAppliers.get(tableName);
+
+        String login = (String) filter.getFilter((RestColumnHandle) columns.get("login"), table.getConstraint());
+        return getRow(() -> service.getOrg("Bearer " + token, login), Organization::toRow);
+    }
+
+    private Collection<? extends List<?>> getUsers(RestTableHandle table)
+    {
+        String tableName = table.getSchemaTableName().getTableName();
+        Map<String, ColumnHandle> columns = columnHandles.get(tableName);
+        FilterApplier filter = filterAppliers.get(tableName);
+
+        String login = (String) filter.getFilter((RestColumnHandle) columns.get("login"), table.getConstraint());
+        return getRow(() -> service.getUser("Bearer " + token, login), User::toRow);
+    }
+
+
+    private Collection<? extends List<?>> getRepos(RestTableHandle table)
+    {
+        String tableName = table.getSchemaTableName().getTableName();
+        Map<String, ColumnHandle> columns = columnHandles.get(tableName);
+        FilterApplier filter = filterAppliers.get(tableName);
+
+        String owner = (String) filter.getFilter((RestColumnHandle) columns.get("owner_login"), table.getConstraint());
+        return getRowsFromPages(
+                page -> service.listUserRepos("Bearer " + token, owner, 100, page, "updated"),
+                Repository::toRow);
     }
 
     private Collection<? extends List<?>> getPulls(RestTableHandle table)
@@ -867,7 +914,7 @@ public class GithubRest
                 break;
             }
             if (!response.isSuccessful()) {
-                throw new IllegalStateException("Unable to read: " + response.message());
+                throw new TrinoException(GENERIC_INTERNAL_ERROR, "Unable to read: " + response.message());
             }
             List<Job> items = Objects.requireNonNull(response.body()).getItems();
             if (items == null || items.size() == 0) {
@@ -884,6 +931,24 @@ public class GithubRest
             result.addAll(steps);
         }
         return result.build();
+    }
+
+    private <T> Collection<? extends List<?>> getRow(Supplier<Call<T>> fetcher, Function<T, List<?>> mapper)
+    {
+        Response<T> response;
+        try {
+            response = fetcher.get().execute();
+        }
+        catch (IOException e) {
+            throw Throwables.propagate(e);
+        }
+        if (response.code() == HTTP_NOT_FOUND) {
+            return ImmutableList.of();
+        }
+        if (!response.isSuccessful()) {
+            throw new TrinoException(GENERIC_INTERNAL_ERROR, "Unable to read: " + response.message());
+        }
+        return ImmutableList.of(mapper.apply(response.body()));
     }
 
     // TODO this abomination should be in a base class implementing a cursor
@@ -904,7 +969,7 @@ public class GithubRest
                 break;
             }
             if (!response.isSuccessful()) {
-                throw new IllegalStateException("Unable to read: " + response.message());
+                throw new TrinoException(GENERIC_INTERNAL_ERROR, "Unable to read: " + response.message());
             }
             List<T> items = response.body();
             if (items == null || items.size() == 0) {
@@ -916,6 +981,7 @@ public class GithubRest
         return result.build();
     }
 
+    // TODO this abomination is even worse
     private <T, E extends Envelope<T>> Collection<? extends List<?>> getRowsFromPagesEnvelope(IntFunction<Call<E>> fetcher, Function<T, List<?>> mapper)
     {
         ImmutableList.Builder<List<?>> result = new ImmutableList.Builder<>();
@@ -933,7 +999,7 @@ public class GithubRest
                 break;
             }
             if (!response.isSuccessful()) {
-                throw new IllegalStateException("Unable to read: " + response.message());
+                throw new TrinoException(GENERIC_INTERNAL_ERROR, "Unable to read: " + response.message());
             }
             List<T> items = Objects.requireNonNull(response.body()).getItems();
             if (items == null || items.size() == 0) {

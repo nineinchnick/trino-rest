@@ -15,6 +15,7 @@
 package pl.net.was.rest.github.filter;
 
 import io.airlift.slice.Slice;
+import io.trino.spi.TrinoException;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.ConstraintApplicationResult;
@@ -33,6 +34,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+import static io.trino.spi.StandardErrorCode.INVALID_ROW_FILTER;
 import static io.trino.spi.type.DateTimeEncoding.unpackMillisUtc;
 import static io.trino.spi.type.DateTimeEncoding.unpackZoneKey;
 import static io.trino.spi.type.Timestamps.MILLISECONDS_PER_SECOND;
@@ -77,7 +79,8 @@ public interface FilterApplier
                 Map<ColumnHandle, Domain> domains = new HashMap<>(currentConstraint.getDomains().get());
                 domains.put(column, domain);
                 currentConstraint = TupleDomain.withColumnDomains(domains);
-            } else {
+            }
+            else {
                 currentConstraint.getDomains().get().get(column).union(domain);
             }
             found = true;
@@ -152,7 +155,7 @@ public interface FilterApplier
         }
         if (supportedFilter == EQUAL) {
             // can push down only the first predicate against this column
-            throw new IllegalStateException("Already pushed down a predicate for " + column.getName() + " which only supports a single value");
+            throw new TrinoException(INVALID_ROW_FILTER, "Already pushed down a predicate for " + column.getName() + " which only supports a single value");
         }
         // don't need to check for GREATER_THAN_EQUAL since there can only be a single low-bound range, so union would work
         return true;
@@ -174,18 +177,24 @@ public interface FilterApplier
                 return ISO_LOCAL_DATE_TIME.format(fromTrinoTimestamp(since)) + "Z";
             case "owner":
             case "repo":
-            case "pull_number":
+            case "login":
+            case "owner_login":
                 if (domain == null) {
-                    throw new IllegalArgumentException("Missing required constraint for " + column.getName());
+                    throw new TrinoException(INVALID_ROW_FILTER, "Missing required constraint for " + column.getName());
                 }
                 return ((Slice) domain.getSingleValue()).toStringUtf8();
+            case "pull_number":
+                if (domain == null) {
+                    throw new TrinoException(INVALID_ROW_FILTER, "Missing required constraint for " + column.getName());
+                }
+                return domain.getSingleValue();
             case "run_id":
                 if (domain == null) {
                     return null;
                 }
                 return domain.getSingleValue();
             default:
-                throw new IllegalArgumentException("Unexpected constraint for " + column.getName());
+                throw new TrinoException(INVALID_ROW_FILTER, "Unexpected constraint for " + column.getName());
         }
     }
 

@@ -16,6 +16,7 @@ package pl.net.was.rest.github.function;
 
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
+import io.trino.spi.TrinoException;
 import io.trino.spi.function.Description;
 import io.trino.spi.function.ScalarFunction;
 import io.trino.spi.function.SqlType;
@@ -24,6 +25,7 @@ import retrofit2.Response;
 
 import java.io.IOException;
 
+import static io.trino.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 import static io.trino.spi.type.StandardTypes.BIGINT;
 import static io.trino.spi.type.StandardTypes.VARCHAR;
 import static java.lang.String.format;
@@ -49,7 +51,7 @@ public class JobLogs
             return Slices.EMPTY_SLICE;
         }
         if (!response.isSuccessful()) {
-            throw new IllegalStateException(format("Invalid response, code %d, message: %s", response.code(), response.message()));
+            throw new TrinoException(GENERIC_INTERNAL_ERROR, format("Invalid response, code %d, message: %s", response.code(), response.message()));
         }
         ResponseBody body = response.body();
         String log = "";

@@ -16,7 +16,10 @@ package pl.net.was.rest.github.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import io.trino.spi.block.BlockBuilder;
+
+import java.util.List;
 
 import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.BooleanType.BOOLEAN;
@@ -52,6 +55,22 @@ public class Repository
         this.description = description;
         this.fork = fork;
         this.url = url;
+    }
+
+
+    public List<?> toRow()
+    {
+        // TODO allow nulls
+        return ImmutableList.of(
+                id,
+                name != null ? name : "",
+                fullName != null ? fullName : "",
+                owner.getId(),
+                owner.getLogin(),
+                isPrivate,
+                description != null ? description : "",
+                fork,
+                url);
     }
 
     @Override

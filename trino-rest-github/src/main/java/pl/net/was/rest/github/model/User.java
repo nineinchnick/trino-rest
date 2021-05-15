@@ -16,9 +16,11 @@ package pl.net.was.rest.github.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import io.trino.spi.block.BlockBuilder;
 
 import java.time.ZonedDateTime;
+import java.util.List;
 
 import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.BooleanType.BOOLEAN;
@@ -100,6 +102,32 @@ public class User
     public String getLogin()
     {
         return login;
+    }
+
+    public List<?> toRow()
+    {
+        // TODO allow nulls
+        return ImmutableList.of(
+                login,
+                id,
+                avatarUrl != null ? avatarUrl : "",
+                gravatarId != null ? gravatarId : "",
+                type,
+                siteAdmin,
+                name,
+                company != null ? company : "",
+                blog != null ? blog : "",
+                location != null ? location : "",
+                email != null ? email : "",
+                hireable,
+                bio != null ? bio : "",
+                twitterUsername != null ? twitterUsername : "",
+                publicRepos,
+                publicGists,
+                followers,
+                following,
+                packTimestamp(createdAt),
+                packTimestamp(updatedAt));
     }
 
     @Override

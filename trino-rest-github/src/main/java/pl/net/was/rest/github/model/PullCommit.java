@@ -78,15 +78,32 @@ public class PullCommit
 
     public List<?> toRow()
     {
+        BlockBuilder parentShas = VARCHAR.createBlockBuilder(null, parents.size());
+        for (Ref parent : parents) {
+            VARCHAR.writeString(parentShas, parent.getSha());
+        }
+
         return ImmutableList.of(
                 owner,
                 repo,
                 sha,
                 pullNumber,
-                commit,
-                author,
-                committer,
-                parents);
+                commit.getMessage(),
+                commit.getTree().getSha(),
+                commit.getCommentsCount(),
+                commit.getVerification().getVerified(),
+                commit.getVerification().getReason(),
+                commit.getAuthor().getName(),
+                commit.getAuthor().getEmail(),
+                packTimestamp(commit.getAuthor().getDate()),
+                author.getId(),
+                author.getLogin(),
+                commit.getCommitter().getName(),
+                commit.getCommitter().getEmail(),
+                packTimestamp(commit.getCommitter().getDate()),
+                committer.getId(),
+                committer.getLogin(),
+                parentShas.build());
     }
 
     @Override

@@ -16,9 +16,11 @@ package pl.net.was.rest.github.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import io.trino.spi.block.BlockBuilder;
 
 import java.time.ZonedDateTime;
+import java.util.List;
 
 import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.BooleanType.BOOLEAN;
@@ -129,6 +131,45 @@ public class Organization
         this.membersCanCreatePrivateRepositories = membersCanCreatePrivateRepositories;
         this.membersCanCreateInternalRepositories = membersCanCreateInternalRepositories;
         this.membersCanCreatePages = membersCanCreatePages;
+    }
+
+    public List<?> toRow()
+    {
+        // TODO allow nulls
+        return ImmutableList.of(
+                login,
+                id,
+                description != null ? description : "",
+                name,
+                company != null ? company : "",
+                blog != null ? blog : "",
+                location != null ? location : "",
+                email != null ? email : "",
+                twitterUsername != null ? twitterUsername : "",
+                isVerified,
+                hasOrganizationProjects,
+                hasRepositoryProjects,
+                publicRepos,
+                publicGists,
+                followers,
+                following,
+                packTimestamp(createdAt),
+                packTimestamp(updatedAt),
+                type,
+                totalPrivateRepos,
+                ownedPrivateRepos,
+                privateGists,
+                diskUsage,
+                collaborators,
+                billingEmail != null ? billingEmail : "",
+                defaultRepositoryPermission != null ? defaultRepositoryPermission : "",
+                membersCanCreateRepositories,
+                twoFactorRequirementEnabled,
+                membersAllowedRepositoryCreationType != null ? membersAllowedRepositoryCreationType : "",
+                membersCanCreatePublicRepositories,
+                membersCanCreatePrivateRepositories,
+                membersCanCreateInternalRepositories,
+                membersCanCreatePages);
     }
 
     @Override

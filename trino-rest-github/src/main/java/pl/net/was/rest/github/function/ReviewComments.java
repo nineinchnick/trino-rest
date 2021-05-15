@@ -17,6 +17,7 @@ package pl.net.was.rest.github.function;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
 import io.trino.spi.PageBuilder;
+import io.trino.spi.TrinoException;
 import io.trino.spi.block.Block;
 import io.trino.spi.function.Description;
 import io.trino.spi.function.ScalarFunction;
@@ -30,6 +31,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
+import static io.trino.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 import static io.trino.spi.type.StandardTypes.INTEGER;
 import static io.trino.spi.type.StandardTypes.VARCHAR;
 import static java.lang.String.format;
@@ -70,7 +72,7 @@ public class ReviewComments
             return null;
         }
         if (!response.isSuccessful()) {
-            throw new IllegalStateException(format("Invalid response, code %d, message: %s", response.code(), response.message()));
+            throw new TrinoException(GENERIC_INTERNAL_ERROR, format("Invalid response, code %d, message: %s", response.code(), response.message()));
         }
         List<ReviewComment> items = Objects.requireNonNull(response.body());
         items.forEach(i -> i.setOwner(owner.toStringUtf8()));
