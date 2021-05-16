@@ -38,10 +38,9 @@ public class TestGithubQueries
     @Test
     public void selectFromTable()
     {
-        // TODO can't run this without a token, figure out how to provide it in github actions
-        //assertQuerySucceeds("SELECT * FROM orgs WHERE login = 'trinodb'");
-        //assertQuerySucceeds("SELECT * FROM users WHERE login = 'nineinchnick'");
-        //assertQuerySucceeds("SELECT * FROM repos WHERE owner_login = 'nineinchnick'");
+        assertQuerySucceeds("SELECT * FROM orgs WHERE login = 'trinodb'");
+        assertQuerySucceeds("SELECT * FROM users WHERE login = 'nineinchnick'");
+        assertQuerySucceeds("SELECT * FROM repos WHERE owner_login = 'nineinchnick'");
         assertQuerySucceeds("SELECT * FROM issues WHERE owner = 'nineinchnick' AND repo = 'trino-rest'");
         assertQuerySucceeds("SELECT * FROM issue_comments WHERE owner = 'nineinchnick' AND repo = 'trino-rest'");
         assertQuerySucceeds("SELECT * FROM pulls WHERE owner = 'nineinchnick' AND repo = 'trino-rest'");
@@ -78,14 +77,13 @@ public class TestGithubQueries
         if (token == null) {
             token = "invalid.token";
         }
-        // TODO can't run this without a token, figure out how to provide it in github actions
-        //assertQuerySucceeds("SELECT org('" + token + "', 'trinodb')");
-        //assertQuerySucceeds("SELECT * FROM unnest(orgs('" + token + "', 1))");
-        //assertQuerySucceeds("SELECT user('" + token + "', 'nineinchnick')");
-        //assertQuerySucceeds("SELECT * FROM unnest(users('" + token + "', 1))");
-        //assertQuerySucceeds("SELECT * FROM unnest(user_repos('" + token + "', 'nineinchnick'))");
-        //assertQuerySucceeds("SELECT * FROM unnest(org_repos('" + token + "', 'trinodb'))");
-        //assertQuerySucceeds("SELECT * FROM unnest(repos('" + token + "', 1))");
+        assertQuerySucceeds("SELECT org('" + token + "', 'trinodb')");
+        assertQuerySucceeds("SELECT * FROM unnest(orgs('" + token + "', 1))");
+        assertQuerySucceeds("SELECT user('" + token + "', 'nineinchnick')");
+        assertQuerySucceeds("SELECT * FROM unnest(users('" + token + "', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(user_repos('" + token + "', 'nineinchnick'))");
+        assertQuerySucceeds("SELECT * FROM unnest(org_repos('" + token + "', 'trinodb'))");
+        assertQuerySucceeds("SELECT * FROM unnest(repos('" + token + "', 1))");
         assertQuerySucceeds("SELECT * FROM unnest(issues('" + token + "', 'nineinchnick', 'trino-rest', 1, timestamp '1970-01-01 00:00:00'))");
         assertQuerySucceeds("SELECT * FROM unnest(issue_comments('" + token + "', 'nineinchnick', 'trino-rest', 1, timestamp '1970-01-01 00:00:00'))");
         assertQuerySucceeds("SELECT * FROM unnest(pulls('" + token + "', 'nineinchnick', 'trino-rest', 1))");

@@ -23,6 +23,7 @@ import io.trino.testing.DistributedQueryRunner;
 import io.trino.testing.QueryRunner;
 
 import static io.trino.testing.TestingSession.testSessionBuilder;
+import static java.util.Objects.requireNonNullElse;
 
 public class GithubQueryRunner
 {
@@ -41,10 +42,11 @@ public class GithubQueryRunner
                 .build();
         queryRunner.installPlugin(new GithubPlugin());
 
-        String token = System.getenv("GITHUB_TOKEN");
-        if (token == null) {
-            token = "missing.token";
-        }
+        String token = requireNonNullElse(
+                System.getenv("GITHUB_TOKEN"),
+                requireNonNullElse(
+                        System.getenv("GH_TOKEN"),
+                        ""));
         queryRunner.createCatalog(
                 "github",
                 "github",
