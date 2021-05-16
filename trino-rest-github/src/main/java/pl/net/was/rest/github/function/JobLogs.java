@@ -42,7 +42,7 @@ public class JobLogs
             throws IOException
     {
         Response<ResponseBody> response = service.jobLogs(
-                token,
+                "Bearer " + token,
                 owner.toStringUtf8(),
                 repo.toStringUtf8(),
                 jobId).execute();

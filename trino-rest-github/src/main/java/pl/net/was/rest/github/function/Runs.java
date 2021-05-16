@@ -55,7 +55,7 @@ public class Runs
             throws IOException
     {
         Response<RunsList> response = service.listRuns(
-                token,
+                "Bearer " + token,
                 owner.toStringUtf8(),
                 repo.toStringUtf8(),
                 100,

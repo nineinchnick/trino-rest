@@ -59,7 +59,7 @@ public class IssueComments
             throws IOException
     {
         Response<List<IssueComment>> response = service.listIssueComments(
-                token,
+                "Bearer " + token,
                 owner.toStringUtf8(),
                 repo.toStringUtf8(),
                 100,

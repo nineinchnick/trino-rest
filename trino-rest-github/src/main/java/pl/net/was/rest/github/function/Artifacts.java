@@ -64,7 +64,7 @@ public class Artifacts
         int page = 1;
         while (result.size() < total) {
             Response<ArtifactsList> response = service.listRunArtifacts(
-                    token,
+                    "Bearer " + token,
                     owner.toStringUtf8(),
                     repo.toStringUtf8(),
                     runId,
@@ -95,7 +95,7 @@ public class Artifacts
     public static InputStream download(GithubService service, String token, String owner, String repo, long artifactId)
             throws IOException
     {
-        Response<ResponseBody> response = service.getArtifact(token, owner, repo, artifactId).execute();
+        Response<ResponseBody> response = service.getArtifact("Bearer " + token, owner, repo, artifactId).execute();
         if (response.code() == HTTP_NOT_FOUND) {
             return null;
         }

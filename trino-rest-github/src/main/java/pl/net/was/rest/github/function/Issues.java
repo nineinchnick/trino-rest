@@ -59,7 +59,7 @@ public class Issues
             throws IOException
     {
         Response<List<Issue>> response = service.listIssues(
-                token,
+                "Bearer " + token,
                 owner.toStringUtf8(),
                 repo.toStringUtf8(),
                 100,

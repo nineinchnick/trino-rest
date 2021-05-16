@@ -25,6 +25,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
       - name: Build with Maven
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: mvn -B package --file pom.xml -am -pl trino-rest-github
       - name: Archive production artifacts
         uses: actions/upload-artifact@v2

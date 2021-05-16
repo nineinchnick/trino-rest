@@ -58,7 +58,7 @@ public class OrgRepos
         int page = 1;
         while (true) {
             Response<List<Repository>> response = service.listOrgRepos(
-                    token,
+                    "Bearer " + token,
                     org.toStringUtf8(),
                     100,
                     page++,

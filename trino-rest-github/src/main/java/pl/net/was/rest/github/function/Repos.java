@@ -51,7 +51,7 @@ public class Repos
             throws IOException
     {
         Response<List<Repository>> response = service.listRepos(
-                token,
+                "Bearer " + token,
                 sinceId).execute();
         if (response.code() == HTTP_NOT_FOUND) {
             return null;

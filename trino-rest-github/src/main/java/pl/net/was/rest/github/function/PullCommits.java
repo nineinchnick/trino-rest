@@ -62,7 +62,7 @@ public class PullCommits
         int page = 1;
         while (true) {
             Response<List<PullCommit>> response = service.listPullCommits(
-                    token,
+                    "Bearer " + token,
                     owner.toStringUtf8(),
                     repo.toStringUtf8(),
                     pullNumber,

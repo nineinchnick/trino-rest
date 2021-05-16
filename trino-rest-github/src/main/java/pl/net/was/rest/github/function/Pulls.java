@@ -54,7 +54,7 @@ public class Pulls
             throws IOException
     {
         Response<List<Pull>> response = service.listPulls(
-                token,
+                "Bearer " + token,
                 owner.toStringUtf8(),
                 repo.toStringUtf8(),
                 100,

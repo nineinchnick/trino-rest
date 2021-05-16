@@ -63,7 +63,7 @@ public class Steps
         int page = 1;
         while (jobs.size() < total) {
             Response<JobsList> response = service.listRunJobs(
-                    token,
+                    "Bearer " + token,
                     owner.toStringUtf8(),
                     repo.toStringUtf8(),
                     runId,

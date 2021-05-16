@@ -62,7 +62,7 @@ public class Reviews
         int page = 1;
         while (true) {
             Response<List<Review>> response = service.listPullReviews(
-                    token,
+                    "Bearer " + token,
                     owner.toStringUtf8(),
                     repo.toStringUtf8(),
                     pullNumber,

@@ -51,7 +51,7 @@ public class Users
             throws IOException
     {
         Response<List<User>> response = service.listUsers(
-                token,
+                "Bearer " + token,
                 100,
                 since).execute();
         if (response.code() == HTTP_NOT_FOUND) {

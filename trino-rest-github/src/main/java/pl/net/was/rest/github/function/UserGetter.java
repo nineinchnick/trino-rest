@@ -53,7 +53,7 @@ public class UserGetter
             throws IOException
     {
         Response<User> response = service.getUser(
-                token,
+                "Bearer " + token,
                 username.toStringUtf8()).execute();
         if (response.code() == HTTP_NOT_FOUND) {
             return null;

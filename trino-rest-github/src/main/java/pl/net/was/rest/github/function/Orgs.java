@@ -51,7 +51,7 @@ public class Orgs
             throws IOException
     {
         Response<List<Organization>> response = service.listOrgs(
-                token,
+                "Bearer " + token,
                 100,
                 since).execute();
         if (response.code() == HTTP_NOT_FOUND) {

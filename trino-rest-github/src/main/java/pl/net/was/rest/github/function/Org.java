@@ -53,7 +53,7 @@ public class Org
             throws IOException
     {
         Response<Organization> response = service.getOrg(
-                token,
+                "Bearer " + token,
                 org.toStringUtf8()).execute();
         if (response.code() == HTTP_NOT_FOUND) {
             return null;

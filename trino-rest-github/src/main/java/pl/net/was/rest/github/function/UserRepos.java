@@ -58,7 +58,7 @@ public class UserRepos
         int page = 1;
         while (true) {
             Response<List<Repository>> response = service.listUserRepos(
-                    token,
+                    "Bearer " + token,
                     username.toStringUtf8(),
                     100,
                     page++,
