@@ -78,9 +78,9 @@ public class Steps
             if (!response.isSuccessful()) {
                 throw new TrinoException(GENERIC_INTERNAL_ERROR, format("Invalid response, code %d, message: %s", response.code(), response.message()));
             }
-            JobsList jobsList = response.body();
-            total = Objects.requireNonNull(jobsList).getTotalCount();
-            List<Job> items = jobsList.getItems();
+            JobsList envelope = response.body();
+            total = Objects.requireNonNull(envelope).getTotalCount();
+            List<Job> items = envelope.getItems();
             if (items.size() == 0) {
                 break;
             }

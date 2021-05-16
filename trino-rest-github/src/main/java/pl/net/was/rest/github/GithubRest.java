@@ -40,6 +40,7 @@ import okhttp3.logging.HttpLoggingInterceptor;
 import pl.net.was.rest.Rest;
 import pl.net.was.rest.RestColumnHandle;
 import pl.net.was.rest.RestTableHandle;
+import pl.net.was.rest.github.filter.ArtifactFilter;
 import pl.net.was.rest.github.filter.FilterApplier;
 import pl.net.was.rest.github.filter.IssueCommentFilter;
 import pl.net.was.rest.github.filter.IssueFilter;
@@ -89,6 +90,7 @@ import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
+import static pl.net.was.rest.github.function.Artifacts.download;
 
 public class GithubRest
         implements Rest
@@ -323,7 +325,22 @@ public class GithubRest
                     new ColumnMetadata("conclusion", createUnboundedVarcharType()),
                     new ColumnMetadata("number", BIGINT),
                     new ColumnMetadata("started_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
-                    new ColumnMetadata("completed_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)))).build();
+                    new ColumnMetadata("completed_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3))))
+            .put("artifacts", ImmutableList.of(
+                    new ColumnMetadata("owner", createUnboundedVarcharType()),
+                    new ColumnMetadata("repo", createUnboundedVarcharType()),
+                    new ColumnMetadata("run_id", BIGINT),
+                    new ColumnMetadata("id", BIGINT),
+                    new ColumnMetadata("size_in_bytes", BIGINT),
+                    new ColumnMetadata("name", createUnboundedVarcharType()),
+                    new ColumnMetadata("url", createUnboundedVarcharType()),
+                    new ColumnMetadata("archive_download_url", createUnboundedVarcharType()),
+                    new ColumnMetadata("expired", BOOLEAN),
+                    new ColumnMetadata("created_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
+                    new ColumnMetadata("expires_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
+                    new ColumnMetadata("updated_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
+                    new ColumnMetadata("contents", createUnboundedVarcharType())))
+            .build();
 
     // TODO add tests that would verify this using getSqlType(), print the expected string so its easy to copy&paste
     // TODO consider moving to a separate class
@@ -403,6 +420,8 @@ public class GithubRest
             "))";
 
     public static final String PULLS_TABLE_TYPE = "array(row(" +
+            "owner varchar, " +
+            "repo varchar, " +
             "id bigint, " +
             "number bigint, " +
             "state varchar, " +
@@ -434,6 +453,8 @@ public class GithubRest
             "))";
 
     public static final String PULL_COMMITS_TABLE_TYPE = "array(row(" +
+            "owner varchar, " +
+            "repo varchar, " +
             "sha varchar, " +
             "pull_number bigint, " +
             "commit_message varchar, " +
@@ -455,6 +476,8 @@ public class GithubRest
             "))";
 
     public static final String REVIEWS_TABLE_TYPE = "array(row(" +
+            "owner varchar, " +
+            "repo varchar, " +
             "id bigint, " +
             "pull_number bigint, " +
             "user_id bigint, " +
@@ -467,6 +490,8 @@ public class GithubRest
             "))";
 
     public static final String REVIEW_COMMENTS_TABLE_TYPE = "array(row(" +
+            "owner varchar, " +
+            "repo varchar, " +
             "pull_request_review_id bigint, " +
             "id bigint, " +
             "diff_hunk varchar, " +
@@ -528,6 +553,8 @@ public class GithubRest
             "))";
 
     public static final String RUNS_TABLE_TYPE = "array(row(" +
+            "owner varchar, " +
+            "repo varchar, " +
             "id bigint, " +
             "name varchar, " +
             "node_id varchar, " +
@@ -543,6 +570,8 @@ public class GithubRest
             "))";
 
     public static final String JOBS_TABLE_TYPE = "array(row(" +
+            "owner varchar, " +
+            "repo varchar, " +
             "id bigint, " +
             "run_id bigint, " +
             "node_id varchar, " +
@@ -555,6 +584,8 @@ public class GithubRest
             "))";
 
     public static final String STEPS_TABLE_TYPE = "array(row(" +
+            "owner varchar, " +
+            "repo varchar, " +
             "job_id bigint, " +
             "name varchar, " +
             "status varchar, " +
@@ -562,6 +593,22 @@ public class GithubRest
             "number bigint, " +
             "created_at timestamp(3) with time zone, " +
             "updated_at timestamp(3) with time zone" +
+            "))";
+
+    public static final String ARTIFACTS_TABLE_TYPE = "array(row(" +
+            "owner varchar, " +
+            "repo varchar, " +
+            "run_id bigint, " +
+            "id bigint, " +
+            "size_in_bytes bigint, " +
+            "name varchar, " +
+            "url varchar, " +
+            "archive_download_url varchar, " +
+            "expired boolean, " +
+            "created_at timestamp(3) with time zone, " +
+            "expires_at timestamp(3) with time zone, " +
+            "updated_at timestamp(3) with time zone, " +
+            "contents varchar" +
             "))";
 
     private final Map<String, Map<String, ColumnHandle>> columnHandles;
@@ -576,6 +623,7 @@ public class GithubRest
             .put("runs", new RunFilter())
             .put("jobs", new JobFilter())
             .put("steps", new StepFilter())
+            .put("artifacts", new ArtifactFilter())
             .put("orgs", new OrgFilter())
             .put("users", new UserFilter())
             .put("repos", new RepoFilter())
@@ -698,6 +746,8 @@ public class GithubRest
                 return getJobs(table);
             case "steps":
                 return getSteps(table);
+            case "artifacts":
+                return getArtifacts(table);
         }
         return null;
     }
@@ -931,6 +981,33 @@ public class GithubRest
             result.addAll(steps);
         }
         return result.build();
+    }
+
+
+    private Collection<? extends List<?>> getArtifacts(RestTableHandle table)
+    {
+        String tableName = table.getSchemaTableName().getTableName();
+        TupleDomain<ColumnHandle> constraint = table.getConstraint();
+        Map<String, ColumnHandle> columns = columnHandles.get(tableName);
+        FilterApplier filter = filterAppliers.get(tableName);
+
+        String owner = (String) filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
+        String repo = (String) filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
+        // TODO this needs to allow pushing down multiple run_id values and make a separate request for each
+        return getRowsFromPagesEnvelope(
+                page -> service.listArtifacts("Bearer " + token, owner, repo, 100, page),
+                item -> {
+                    item.setOwner(owner);
+                    item.setRepo(repo);
+                    try {
+                        item.setContents(download(service, token, owner, repo, item.getId()));
+                    }
+                    catch (IOException e) {
+                        // TODO how to better handle this?
+                        e.printStackTrace();
+                    }
+                    return item.toRow();
+                });
     }
 
     private <T> Collection<? extends List<?>> getRow(Supplier<Call<T>> fetcher, Function<T, List<?>> mapper)

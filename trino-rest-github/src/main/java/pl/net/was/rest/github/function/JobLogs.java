@@ -24,6 +24,7 @@ import okhttp3.ResponseBody;
 import retrofit2.Response;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import static io.trino.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 import static io.trino.spi.type.StandardTypes.BIGINT;
@@ -53,11 +54,8 @@ public class JobLogs
         if (!response.isSuccessful()) {
             throw new TrinoException(GENERIC_INTERNAL_ERROR, format("Invalid response, code %d, message: %s", response.code(), response.message()));
         }
-        ResponseBody body = response.body();
-        String log = "";
-        if (body != null) {
-            log = body.string().replaceAll("\u0000", "");
-        }
+        ResponseBody body = Objects.requireNonNull(response.body());
+        String log = body.string().replaceAll("\u0000", "");
         return Slices.utf8Slice(log);
     }
 }

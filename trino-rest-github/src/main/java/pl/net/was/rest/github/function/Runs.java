@@ -68,8 +68,8 @@ public class Runs
         if (!response.isSuccessful()) {
             throw new TrinoException(GENERIC_INTERNAL_ERROR, format("Invalid response, code %d, message: %s", response.code(), response.message()));
         }
-        RunsList runsList = response.body();
-        List<Run> items = Objects.requireNonNull(runsList).getItems();
+        RunsList envelope = response.body();
+        List<Run> items = Objects.requireNonNull(envelope).getItems();
         items.forEach(i -> i.setOwner(owner.toStringUtf8()));
         items.forEach(i -> i.setRepo(repo.toStringUtf8()));
         return buildBlock(items);
