@@ -20,7 +20,7 @@ jobs:
           java-version: '11'
           distribution: 'adopt'
       - name: Build with Maven
-        run: mvn -B package --file pom.xml
+        run: mvn -B package --file pom.xml -pl trino-rest-github
       - name: Archive production artifacts
         uses: actions/upload-artifact@v2
         with:
