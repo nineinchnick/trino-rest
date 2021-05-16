@@ -50,7 +50,7 @@ public class UserRepos
     }
 
     @SqlType(REPOS_TABLE_TYPE)
-    public Block getPage(@SqlType(VARCHAR) Slice token, @SqlType(VARCHAR) Slice username)
+    public Block getPage(@SqlType(VARCHAR) Slice username)
             throws IOException
     {
         // there should not be more than a few pages worth of repos, so try to get all of them
@@ -58,7 +58,7 @@ public class UserRepos
         int page = 1;
         while (true) {
             Response<List<Repository>> response = service.listUserRepos(
-                    token.toStringUtf8(),
+                    token,
                     username.toStringUtf8(),
                     100,
                     page++,

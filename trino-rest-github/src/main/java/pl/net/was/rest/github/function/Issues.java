@@ -52,7 +52,6 @@ public class Issues
 
     @SqlType(ISSUES_TABLE_TYPE)
     public Block getPage(
-            @SqlType(VARCHAR) Slice token,
             @SqlType(VARCHAR) Slice owner,
             @SqlType(VARCHAR) Slice repo,
             @SqlType(INTEGER) long page,
@@ -60,7 +59,7 @@ public class Issues
             throws IOException
     {
         Response<List<Issue>> response = service.listIssues(
-                token.toStringUtf8(),
+                token,
                 owner.toStringUtf8(),
                 repo.toStringUtf8(),
                 100,

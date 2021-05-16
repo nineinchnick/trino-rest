@@ -98,7 +98,7 @@ public class GithubRest
 {
     public static final String SCHEMA_NAME = "default";
 
-    private final String token;
+    private static String token;
     private final GithubService service = getService();
 
     public static final Map<String, List<ColumnMetadata>> columns = new ImmutableMap.Builder<String, List<ColumnMetadata>>()
@@ -632,7 +632,7 @@ public class GithubRest
 
     public GithubRest(String token)
     {
-        this.token = token;
+        GithubRest.token = token;
 
         columnHandles = columns.keySet()
                 .stream()
@@ -668,6 +668,11 @@ public class GithubRest
                                 .registerModule(new JavaTimeModule())))
                 .build()
                 .create(GithubService.class);
+    }
+
+    public static String getToken()
+    {
+        return token;
     }
 
     public static <T> void checkServiceResponse(Response<T> response)

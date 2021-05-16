@@ -49,11 +49,11 @@ public class UserGetter
     }
 
     @SqlType(USER_ROW_TYPE)
-    public Block get(@SqlType(VARCHAR) Slice token, @SqlType(VARCHAR) Slice username)
+    public Block get(@SqlType(VARCHAR) Slice username)
             throws IOException
     {
         Response<User> response = service.getUser(
-                token.toStringUtf8(),
+                token,
                 username.toStringUtf8()).execute();
         if (response.code() == HTTP_NOT_FOUND) {
             return null;

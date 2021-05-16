@@ -52,7 +52,6 @@ public class Reviews
 
     @SqlType(REVIEWS_TABLE_TYPE)
     public Block getPage(
-            @SqlType(VARCHAR) Slice token,
             @SqlType(VARCHAR) Slice owner,
             @SqlType(VARCHAR) Slice repo,
             @SqlType(BIGINT) long pullNumber)
@@ -63,7 +62,7 @@ public class Reviews
         int page = 1;
         while (true) {
             Response<List<Review>> response = service.listPullReviews(
-                    token.toStringUtf8(),
+                    token,
                     owner.toStringUtf8(),
                     repo.toStringUtf8(),
                     pullNumber,

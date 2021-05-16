@@ -15,7 +15,6 @@
 package pl.net.was.rest.github.function;
 
 import com.google.common.collect.ImmutableList;
-import io.airlift.slice.Slice;
 import io.trino.spi.PageBuilder;
 import io.trino.spi.block.Block;
 import io.trino.spi.function.Description;
@@ -30,7 +29,6 @@ import java.io.IOException;
 import java.util.List;
 
 import static io.trino.spi.type.StandardTypes.BIGINT;
-import static io.trino.spi.type.StandardTypes.VARCHAR;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 import static pl.net.was.rest.github.GithubRest.USERS_TABLE_TYPE;
 import static pl.net.was.rest.github.GithubRest.checkServiceResponse;
@@ -49,11 +47,11 @@ public class Users
     }
 
     @SqlType(USERS_TABLE_TYPE)
-    public Block getPage(@SqlType(VARCHAR) Slice token, @SqlType(BIGINT) long since)
+    public Block getPage(@SqlType(BIGINT) long since)
             throws IOException
     {
         Response<List<User>> response = service.listUsers(
-                token.toStringUtf8(),
+                token,
                 100,
                 since).execute();
         if (response.code() == HTTP_NOT_FOUND) {

@@ -51,11 +51,11 @@ public class Runs
     }
 
     @SqlType(RUNS_TABLE_TYPE)
-    public Block getPage(@SqlType(VARCHAR) Slice token, @SqlType(VARCHAR) Slice owner, @SqlType(VARCHAR) Slice repo, @SqlType(INTEGER) long page)
+    public Block getPage(@SqlType(VARCHAR) Slice owner, @SqlType(VARCHAR) Slice repo, @SqlType(INTEGER) long page)
             throws IOException
     {
         Response<RunsList> response = service.listRuns(
-                token.toStringUtf8(),
+                token,
                 owner.toStringUtf8(),
                 repo.toStringUtf8(),
                 100,

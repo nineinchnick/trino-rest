@@ -51,8 +51,6 @@ public class GithubQueryRunner
                 "github",
                 "github",
                 ImmutableMap.of(
-                        "user", "trinodb",
-                        "repo", "trino",
                         "token", token));
 
         return queryRunner;

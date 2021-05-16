@@ -73,28 +73,24 @@ public class TestGithubQueries
     @Test
     public void selectFromFunction()
     {
-        String token = System.getenv("GITHUB_TOKEN");
-        if (token == null) {
-            token = "invalid.token";
-        }
-        assertQuerySucceeds("SELECT org('" + token + "', 'trinodb')");
-        assertQuerySucceeds("SELECT * FROM unnest(orgs('" + token + "', 1))");
-        assertQuerySucceeds("SELECT user('" + token + "', 'nineinchnick')");
-        assertQuerySucceeds("SELECT * FROM unnest(users('" + token + "', 1))");
-        assertQuerySucceeds("SELECT * FROM unnest(user_repos('" + token + "', 'nineinchnick'))");
-        assertQuerySucceeds("SELECT * FROM unnest(org_repos('" + token + "', 'trinodb'))");
-        assertQuerySucceeds("SELECT * FROM unnest(repos('" + token + "', 1))");
-        assertQuerySucceeds("SELECT * FROM unnest(issues('" + token + "', 'nineinchnick', 'trino-rest', 1, timestamp '1970-01-01 00:00:00'))");
-        assertQuerySucceeds("SELECT * FROM unnest(issue_comments('" + token + "', 'nineinchnick', 'trino-rest', 1, timestamp '1970-01-01 00:00:00'))");
-        assertQuerySucceeds("SELECT * FROM unnest(pulls('" + token + "', 'nineinchnick', 'trino-rest', 1))");
-        assertQuerySucceeds("SELECT * FROM unnest(pull_commits('" + token + "', 'nineinchnick', 'trino-rest', 1))");
-        assertQuerySucceeds("SELECT * FROM unnest(reviews('" + token + "', 'nineinchnick', 'trino-rest', 1))");
-        assertQuerySucceeds("SELECT * FROM unnest(review_comments('" + token + "', 'nineinchnick', 'trino-rest', 1, timestamp '1970-01-01 00:00:00'))");
-        assertQuerySucceeds("SELECT * FROM unnest(runs('" + token + "', 'nineinchnick', 'trino-rest', 1))");
-        assertQuerySucceeds("SELECT * FROM unnest(jobs('" + token + "', 'nineinchnick', 'trino-rest', 1))");
-        assertQuerySucceeds("SELECT * FROM unnest(steps('" + token + "', 'nineinchnick', 'trino-rest', 1))");
+        assertQuerySucceeds("SELECT org('trinodb')");
+        assertQuerySucceeds("SELECT * FROM unnest(orgs(1))");
+        assertQuerySucceeds("SELECT user('nineinchnick')");
+        assertQuerySucceeds("SELECT * FROM unnest(users(1))");
+        assertQuerySucceeds("SELECT * FROM unnest(user_repos('nineinchnick'))");
+        assertQuerySucceeds("SELECT * FROM unnest(org_repos('trinodb'))");
+        assertQuerySucceeds("SELECT * FROM unnest(repos(1))");
+        assertQuerySucceeds("SELECT * FROM unnest(issues('nineinchnick', 'trino-rest', 1, timestamp '1970-01-01 00:00:00'))");
+        assertQuerySucceeds("SELECT * FROM unnest(issue_comments('nineinchnick', 'trino-rest', 1, timestamp '1970-01-01 00:00:00'))");
+        assertQuerySucceeds("SELECT * FROM unnest(pulls('nineinchnick', 'trino-rest', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(pull_commits('nineinchnick', 'trino-rest', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(reviews('nineinchnick', 'trino-rest', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(review_comments('nineinchnick', 'trino-rest', 1, timestamp '1970-01-01 00:00:00'))");
+        assertQuerySucceeds("SELECT * FROM unnest(runs('nineinchnick', 'trino-rest', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(jobs('nineinchnick', 'trino-rest', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(steps('nineinchnick', 'trino-rest', 1))");
         // TODO figure out why this requires special permissions
-        //assertQuerySucceeds("SELECT job_logs('" + token + "', 'nineinchnick', 'trino-rest', 1)");
-        assertQuerySucceeds("SELECT * FROM unnest(artifacts('" + token + "', 'nineinchnick', 'trino-rest', 1))");
+        //assertQuerySucceeds("SELECT job_logs('nineinchnick', 'trino-rest', 1)");
+        assertQuerySucceeds("SELECT * FROM unnest(artifacts('nineinchnick', 'trino-rest', 1))");
     }
 }

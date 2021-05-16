@@ -52,7 +52,7 @@ public class Jobs
     }
 
     @SqlType(JOBS_TABLE_TYPE)
-    public Block getPage(@SqlType(VARCHAR) Slice token, @SqlType(VARCHAR) Slice owner, @SqlType(VARCHAR) Slice repo, @SqlType(BIGINT) long runId)
+    public Block getPage(@SqlType(VARCHAR) Slice owner, @SqlType(VARCHAR) Slice repo, @SqlType(BIGINT) long runId)
             throws IOException
     {
         // there should not be more than a few pages worth of jobs, so try to get all of them
@@ -61,7 +61,7 @@ public class Jobs
         int page = 1;
         while (jobs.size() < total) {
             Response<JobsList> response = service.listRunJobs(
-                    token.toStringUtf8(),
+                    token,
                     owner.toStringUtf8(),
                     repo.toStringUtf8(),
                     runId,

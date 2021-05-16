@@ -49,11 +49,11 @@ public class Org
     }
 
     @SqlType(ORG_ROW_TYPE)
-    public Block get(@SqlType(VARCHAR) Slice token, @SqlType(VARCHAR) Slice org)
+    public Block get(@SqlType(VARCHAR) Slice org)
             throws IOException
     {
         Response<Organization> response = service.getOrg(
-                token.toStringUtf8(),
+                token,
                 org.toStringUtf8()).execute();
         if (response.code() == HTTP_NOT_FOUND) {
             return null;

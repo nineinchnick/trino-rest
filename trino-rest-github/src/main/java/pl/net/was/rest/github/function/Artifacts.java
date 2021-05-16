@@ -55,7 +55,7 @@ public class Artifacts
     }
 
     @SqlType(ARTIFACTS_TABLE_TYPE)
-    public Block getPage(@SqlType(VARCHAR) Slice token, @SqlType(VARCHAR) Slice owner, @SqlType(VARCHAR) Slice repo, @SqlType(BIGINT) long runId)
+    public Block getPage(@SqlType(VARCHAR) Slice owner, @SqlType(VARCHAR) Slice repo, @SqlType(BIGINT) long runId)
             throws IOException
     {
         // there should not be more than a few pages worth of artifacts, so try to get all of them
@@ -64,7 +64,7 @@ public class Artifacts
         int page = 1;
         while (result.size() < total) {
             Response<ArtifactsList> response = service.listRunArtifacts(
-                    token.toStringUtf8(),
+                    token,
                     owner.toStringUtf8(),
                     repo.toStringUtf8(),
                     runId,
@@ -85,7 +85,7 @@ public class Artifacts
                 artifact.setRepo(repo.toStringUtf8());
                 artifact.setRunId(runId);
 
-                artifact.setContents(download(service, token.toStringUtf8(), owner.toStringUtf8(), repo.toStringUtf8(), artifact.getId()));
+                artifact.setContents(download(service, token, owner.toStringUtf8(), repo.toStringUtf8(), artifact.getId()));
             }
             result.addAll(items);
         }

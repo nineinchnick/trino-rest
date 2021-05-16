@@ -52,7 +52,6 @@ public class Sync
         List<String> names = Arrays.asList(
                 "GITHUB_OWNER",
                 "GITHUB_REPO",
-                "GITHUB_TOKEN",
                 "TRINO_DEST_SCHEMA",
                 "TRINO_SRC_SCHEMA",
                 "TRINO_URL",
@@ -68,7 +67,7 @@ public class Sync
                 "CHECK_STEPS_DUPLICATES", "false");
         for (String name : names) {
             String value = env.getOrDefault(name, defaults.getOrDefault(name, ""));
-            if (!value.isEmpty() && (name.equals("TRINO_PASSWORD") || name.equals("GITHUB_TOKEN"))) {
+            if (!value.isEmpty() && (name.equals("TRINO_PASSWORD"))) {
                 value = "***";
             }
             log.info(format("%s=%s", name, value));
@@ -171,17 +170,16 @@ public class Sync
         String lastUpdated = result.getString(1);
         PreparedStatement statement = conn.prepareStatement(
                 "INSERT INTO " + destSchema + "." + name + " " +
-                        "SELECT * FROM unnest(" + name + "(?, ?, ?, ?, CAST(? AS TIMESTAMP))) src");
-        statement.setString(1, "Bearer " + System.getenv("GITHUB_TOKEN"));
-        statement.setString(2, owner);
-        statement.setString(3, repo);
-        statement.setString(5, lastUpdated);
+                        "SELECT * FROM unnest(" + name + "(?, ?, ?, CAST(? AS TIMESTAMP))) src");
+        statement.setString(1, owner);
+        statement.setString(2, repo);
+        statement.setString(4, lastUpdated);
 
         int page = 1;
         while (true) {
             log.info(format("Fetching page number %d", page));
             long startTime = System.currentTimeMillis();
-            statement.setInt(4, page++);
+            statement.setInt(3, page++);
             int rows = retryExecute(statement);
             log.info(format("Inserted %d rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
             if (rows == 0) {
@@ -213,17 +211,16 @@ public class Sync
 
         PreparedStatement statement = conn.prepareStatement(
                 "INSERT INTO " + destSchema + ".pulls " +
-                        "SELECT * FROM unnest(pulls(?, ?, ?, ?)) WHERE updated_at > CAST(? AS TIMESTAMP)");
-        statement.setString(1, "Bearer " + System.getenv("GITHUB_TOKEN"));
-        statement.setString(2, owner);
-        statement.setString(3, repo);
-        statement.setString(5, lastUpdated);
+                        "SELECT * FROM unnest(pulls(?, ?, ?)) WHERE updated_at > CAST(? AS TIMESTAMP)");
+        statement.setString(1, owner);
+        statement.setString(2, repo);
+        statement.setString(4, lastUpdated);
 
         int page = 1;
         while (true) {
             log.info(format("Fetching page number %d", page));
             long startTime = System.currentTimeMillis();
-            statement.setInt(4, page++);
+            statement.setInt(3, page++);
             int rows = retryExecute(statement);
             log.info(format("Inserted %d rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
             if (rows == 0) {
@@ -266,9 +263,8 @@ public class Sync
                         "CROSS JOIN unnest(reviews(?, ?, ?, p.number)) src " +
                         "LEFT JOIN " + destSchema + ".reviews dst ON dst.id = src.id " +
                         "WHERE dst.id IS NULL");
-        insertStatement.setString(2, "Bearer " + System.getenv("GITHUB_TOKEN"));
-        insertStatement.setString(3, owner);
-        insertStatement.setString(4, repo);
+        insertStatement.setString(2, owner);
+        insertStatement.setString(3, repo);
 
         long previousId = Long.MAX_VALUE;
         while (true) {
@@ -305,19 +301,18 @@ public class Sync
         // save only completed runs to avoid having to update them later
         PreparedStatement statement = conn.prepareStatement(
                 "INSERT INTO " + destSchema + ".runs " +
-                        "SELECT src.* FROM unnest(runs(?, ?, ?, ?)) src " +
+                        "SELECT src.* FROM unnest(runs(?, ?, ?)) src " +
                         "LEFT JOIN " + destSchema + ".runs dst ON dst.id = src.id " +
                         "WHERE dst.id IS NULL AND src.status = 'completed'");
-        statement.setString(1, "Bearer " + System.getenv("GITHUB_TOKEN"));
-        statement.setString(2, owner);
-        statement.setString(3, repo);
+        statement.setString(1, owner);
+        statement.setString(2, repo);
 
         int page = 1;
         int breaker = getEmptyLimit();
         while (true) {
             log.info(format("Fetching page number %d", page));
             long startTime = System.currentTimeMillis();
-            statement.setInt(4, page++);
+            statement.setInt(3, page++);
             int rows = retryExecute(statement);
             log.info(format("Inserted %d rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
             if (rows == 0) {
@@ -354,12 +349,11 @@ public class Sync
                         "HAVING COUNT(j.id) = 0 " +
                         "ORDER BY r.id DESC LIMIT 20" +
                         ") r " +
-                        "CROSS JOIN unnest(jobs(?, ?, ?, r.id)) src " +
+                        "CROSS JOIN unnest(jobs(?, ?, r.id)) src " +
                         "LEFT JOIN " + destSchema + ".jobs dst ON (dst.run_id, dst.id) = (src.run_id, src.id) " +
                         "WHERE dst.id IS NULL");
-        statement.setString(1, "Bearer " + System.getenv("GITHUB_TOKEN"));
-        statement.setString(2, owner);
-        statement.setString(3, repo);
+        statement.setString(1, owner);
+        statement.setString(2, repo);
 
         while (true) {
             log.info("Fetching jobs");
@@ -403,7 +397,7 @@ public class Sync
         String insertQuery =
                 "INSERT INTO " + destSchema + ".steps " +
                         "SELECT src.* " +
-                        "FROM unnest(steps(?, ?, ?, ?)) src " +
+                        "FROM unnest(steps(?, ?, ?)) src " +
                         "LEFT JOIN " + destSchema + ".steps dst ON (dst.job_id, dst.number) = (src.job_id, src.number) " +
                         "WHERE dst.number IS NULL";
         // the LEFT JOIN used to avoid duplicate errors always fetches all steps
@@ -414,12 +408,11 @@ public class Sync
         if (checkDuplicates != null && checkDuplicates.equals("false")) {
             insertQuery =
                     "INSERT INTO " + destSchema + ".steps " +
-                            "SELECT * FROM unnest(steps(?, ?, ?, ?)) src";
+                            "SELECT * FROM unnest(steps(?, ?, ?)) src";
         }
         PreparedStatement insertStatement = conn.prepareStatement(insertQuery);
-        insertStatement.setString(1, "Bearer " + System.getenv("GITHUB_TOKEN"));
-        insertStatement.setString(2, owner);
-        insertStatement.setString(3, repo);
+        insertStatement.setString(1, owner);
+        insertStatement.setString(2, repo);
 
         log.info("Fetching run ids to get steps for");
         if (!idStatement.execute()) {
@@ -428,7 +421,7 @@ public class Sync
         ResultSet resultSet = idStatement.getResultSet();
         while (resultSet.next()) {
             long runId = resultSet.getLong(1);
-            insertStatement.setLong(4, runId);
+            insertStatement.setLong(3, runId);
 
             log.info(format("Fetching steps for jobs of run %d", runId));
             long startTime = System.currentTimeMillis();
@@ -458,12 +451,11 @@ public class Sync
                 "INSERT INTO " + destSchema + ".steps " +
                         "SELECT src.* " +
                         "FROM (" + runsQuery + ") r " +
-                        "CROSS JOIN unnest(steps(?, ?, ?, r.id)) src " +
+                        "CROSS JOIN unnest(steps(?, ?, r.id)) src " +
                         "LEFT JOIN " + destSchema + ".steps dst ON (dst.job_id, dst.number) = (src.job_id, src.number) " +
                         "WHERE dst.number IS NULL");
-        insertStatement.setString(2, "Bearer " + System.getenv("GITHUB_TOKEN"));
-        insertStatement.setString(3, owner);
-        insertStatement.setString(4, repo);
+        insertStatement.setString(2, owner);
+        insertStatement.setString(3, repo);
 
         long previousId = Long.MAX_VALUE;
         while (true) {
@@ -498,7 +490,7 @@ public class Sync
         // only fetch up to 5 job logs for completed runs not older than 2 months, without any job logs
         PreparedStatement statement = conn.prepareStatement(
                 "INSERT INTO " + destSchema + ".logs " +
-                        "SELECT j.id, job_logs(?, ?, ?, j.id) " +
+                        "SELECT j.id, job_logs(?, ?, j.id) " +
                         "FROM (" +
                         "SELECT j.id " +
                         "FROM " + destSchema + ".runs r " +
@@ -510,9 +502,8 @@ public class Sync
                         "HAVING COUNT(l.job_id) = 0 " +
                         "ORDER BY j.id DESC LIMIT 5" +
                         ") j");
-        statement.setString(1, "Bearer " + System.getenv("GITHUB_TOKEN"));
-        statement.setString(2, owner);
-        statement.setString(3, repo);
+        statement.setString(1, owner);
+        statement.setString(2, repo);
 
         while (true) {
             log.info("Fetching logs");

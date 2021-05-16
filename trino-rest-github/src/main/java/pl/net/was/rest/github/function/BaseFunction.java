@@ -38,10 +38,12 @@ public abstract class BaseFunction
     protected PageBuilder pageBuilder;
 
     protected final GithubService service;
+    protected final String token;
 
     public BaseFunction()
     {
         service = GithubRest.getService();
+        token = GithubRest.getToken();
     }
 
     protected Block buildBlock(List<? extends BlockWriter> writers)

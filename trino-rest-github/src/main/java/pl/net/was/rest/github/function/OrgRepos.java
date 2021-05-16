@@ -50,7 +50,7 @@ public class OrgRepos
     }
 
     @SqlType(REPOS_TABLE_TYPE)
-    public Block getPage(@SqlType(VARCHAR) Slice token, @SqlType(VARCHAR) Slice org)
+    public Block getPage(@SqlType(VARCHAR) Slice org)
             throws IOException
     {
         // there should not be more than a few pages worth of repos, so try to get all of them
@@ -58,7 +58,7 @@ public class OrgRepos
         int page = 1;
         while (true) {
             Response<List<Repository>> response = service.listOrgRepos(
-                    token.toStringUtf8(),
+                    token,
                     org.toStringUtf8(),
                     100,
                     page++,

@@ -38,11 +38,11 @@ public class JobLogs
     public JobLogs() {}
 
     @SqlType("varchar")
-    public Slice getLog(@SqlType(VARCHAR) Slice token, @SqlType(VARCHAR) Slice owner, @SqlType(VARCHAR) Slice repo, @SqlType(BIGINT) long jobId)
+    public Slice getLog(@SqlType(VARCHAR) Slice owner, @SqlType(VARCHAR) Slice repo, @SqlType(BIGINT) long jobId)
             throws IOException
     {
         Response<ResponseBody> response = service.jobLogs(
-                token.toStringUtf8(),
+                token,
                 owner.toStringUtf8(),
                 repo.toStringUtf8(),
                 jobId).execute();
