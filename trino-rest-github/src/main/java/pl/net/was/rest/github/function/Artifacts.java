@@ -17,7 +17,6 @@ package pl.net.was.rest.github.function;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
 import io.trino.spi.PageBuilder;
-import io.trino.spi.TrinoException;
 import io.trino.spi.block.Block;
 import io.trino.spi.function.Description;
 import io.trino.spi.function.ScalarFunction;
@@ -35,13 +34,12 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import static io.trino.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 import static io.trino.spi.type.StandardTypes.BIGINT;
 import static io.trino.spi.type.StandardTypes.VARCHAR;
-import static java.lang.String.format;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 import static java.util.Objects.requireNonNull;
 import static pl.net.was.rest.github.GithubRest.ARTIFACTS_TABLE_TYPE;
+import static pl.net.was.rest.github.GithubRest.checkServiceResponse;
 import static pl.net.was.rest.github.GithubRest.getRowType;
 
 @ScalarFunction("artifacts")
@@ -75,9 +73,7 @@ public class Artifacts
             if (response.code() == HTTP_NOT_FOUND) {
                 break;
             }
-            if (!response.isSuccessful()) {
-                throw new TrinoException(GENERIC_INTERNAL_ERROR, format("Invalid response, code %d, message: %s", response.code(), response.message()));
-            }
+            checkServiceResponse(response);
             ArtifactsList envelope = response.body();
             total = requireNonNull(envelope).getTotalCount();
             List<Artifact> items = envelope.getItems();
@@ -103,9 +99,7 @@ public class Artifacts
         if (response.code() == HTTP_NOT_FOUND) {
             return null;
         }
-        if (!response.isSuccessful()) {
-            throw new TrinoException(GENERIC_INTERNAL_ERROR, format("Invalid response, code %d, message: %s", response.code(), response.message()));
-        }
+        checkServiceResponse(response);
         ResponseBody body = requireNonNull(response.body());
         return body.byteStream();
     }

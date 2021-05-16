@@ -36,6 +36,7 @@ import io.trino.spi.type.RowType;
 import io.trino.spi.type.TimestampWithTimeZoneType;
 import okhttp3.Cache;
 import okhttp3.OkHttpClient;
+import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
 import pl.net.was.rest.Rest;
 import pl.net.was.rest.RestColumnHandle;
@@ -669,6 +670,25 @@ public class GithubRest
                 .create(GithubService.class);
     }
 
+    public static <T> void checkServiceResponse(Response<T> response)
+    {
+        if (response.isSuccessful()) {
+            return;
+        }
+        ResponseBody error = response.errorBody();
+        String message = "Unable to read: ";
+        if (error != null) {
+            try {
+                // TODO unserialize the JSON in error
+                message += error.string();
+            }
+            catch (IOException e) {
+                // pass
+            }
+        }
+        throw new TrinoException(GENERIC_INTERNAL_ERROR, message);
+    }
+
     private static Level getLogLevel()
     {
         String loggerName = BaseFunction.class.getName();
@@ -962,9 +982,7 @@ public class GithubRest
             if (response.code() == HTTP_NOT_FOUND) {
                 break;
             }
-            if (!response.isSuccessful()) {
-                throw new TrinoException(GENERIC_INTERNAL_ERROR, "Unable to read: " + response.message());
-            }
+            checkServiceResponse(response);
             List<Job> items = requireNonNull(response.body()).getItems();
             if (items.size() == 0) {
                 break;
@@ -1020,9 +1038,7 @@ public class GithubRest
         if (response.code() == HTTP_NOT_FOUND) {
             return ImmutableList.of();
         }
-        if (!response.isSuccessful()) {
-            throw new TrinoException(GENERIC_INTERNAL_ERROR, "Unable to read: " + response.message());
-        }
+        checkServiceResponse(response);
         return ImmutableList.of(mapper.apply(response.body()));
     }
 
@@ -1043,9 +1059,7 @@ public class GithubRest
             if (response.code() == HTTP_NOT_FOUND) {
                 break;
             }
-            if (!response.isSuccessful()) {
-                throw new TrinoException(GENERIC_INTERNAL_ERROR, "Unable to read: " + response.message());
-            }
+            checkServiceResponse(response);
             List<T> items = requireNonNull(response.body());
             if (items.size() == 0) {
                 break;
@@ -1073,9 +1087,7 @@ public class GithubRest
             if (response.code() == HTTP_NOT_FOUND) {
                 break;
             }
-            if (!response.isSuccessful()) {
-                throw new TrinoException(GENERIC_INTERNAL_ERROR, "Unable to read: " + response.message());
-            }
+            checkServiceResponse(response);
             List<T> items = requireNonNull(response.body()).getItems();
             if (items.size() == 0) {
                 break;

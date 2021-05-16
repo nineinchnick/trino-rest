@@ -41,13 +41,17 @@ public class GithubQueryRunner
                 .build();
         queryRunner.installPlugin(new GithubPlugin());
 
+        String token = System.getenv("GITHUB_TOKEN");
+        if (token == null) {
+            token = "missing.token";
+        }
         queryRunner.createCatalog(
                 "github",
                 "github",
                 ImmutableMap.of(
                         "user", "trinodb",
                         "repo", "trino",
-                        "token", System.getenv("GITHUB_TOKEN")));
+                        "token", token));
 
         return queryRunner;
     }
