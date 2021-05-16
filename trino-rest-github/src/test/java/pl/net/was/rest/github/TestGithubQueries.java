@@ -36,7 +36,7 @@ public class TestGithubQueries
     }
 
     @Test
-    public void select()
+    public void selectFromTable()
     {
         assertQuerySucceeds("SELECT * FROM orgs WHERE login = 'trinodb'");
         assertQuerySucceeds("SELECT * FROM users WHERE login = 'nineinchnick'");
@@ -73,5 +73,29 @@ public class TestGithubQueries
     public void selectFromUser()
     {
         computeActual("SELECT user('invalid.token', 'nineinchnick')");
+    }
+
+
+    @Test(invocationCount = 100)
+    public void selectFromFunction()
+    {
+        assertQuerySucceeds("SELECT * FROM unnest(org('invalid.token', 'trinodb'))");
+        assertQuerySucceeds("SELECT * FROM unnest(orgs('invalid.token', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(user('invalid.token', 'nineinchnick'))");
+        assertQuerySucceeds("SELECT * FROM unnest(users('invalid.token', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(user_repos('invalid.token', 'nineinchnick'))");
+        assertQuerySucceeds("SELECT * FROM unnest(org_repos('invalid.token', 'trinodb'))");
+        assertQuerySucceeds("SELECT * FROM unnest(repos('invalid.token', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(issues('invalid.token', 'nineinchnick', 'trino-rest', 1, '1970-01-01T00:00:00Z'))");
+        assertQuerySucceeds("SELECT * FROM unnest(issue_comments('invalid.token', 'nineinchnick', 'trino-rest', 1, '1970-01-01T00:00:00Z'))");
+        assertQuerySucceeds("SELECT * FROM unnest(pulls('invalid.token', 'nineinchnick', 'trino-rest', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(pull_commits('invalid.token', 'nineinchnick', 'trino-rest', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(reviews('invalid.token', 'nineinchnick', 'trino-rest', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(review_comments('invalid.token', 'nineinchnick', 'trino-rest', 1, 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(runs('invalid.token', 'nineinchnick', 'trino-rest', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(jobs('invalid.token', 'nineinchnick', 'trino-rest', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(steps('invalid.token', 'nineinchnick', 'trino-rest', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(job_logs('invalid.token', 'nineinchnick', 'trino-rest', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(artifacts('invalid.token', 'nineinchnick', 'trino-rest', 1))");
     }
 }
