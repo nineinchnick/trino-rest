@@ -80,23 +80,27 @@ public class TestGithubQueries
     @Test(invocationCount = 100)
     public void selectFromFunction()
     {
-        assertQuerySucceeds("SELECT * FROM unnest(org('invalid.token', 'trinodb'))");
-        assertQuerySucceeds("SELECT * FROM unnest(orgs('invalid.token', 1))");
-        assertQuerySucceeds("SELECT * FROM unnest(user('invalid.token', 'nineinchnick'))");
-        assertQuerySucceeds("SELECT * FROM unnest(users('invalid.token', 1))");
-        assertQuerySucceeds("SELECT * FROM unnest(user_repos('invalid.token', 'nineinchnick'))");
-        assertQuerySucceeds("SELECT * FROM unnest(org_repos('invalid.token', 'trinodb'))");
-        assertQuerySucceeds("SELECT * FROM unnest(repos('invalid.token', 1))");
-        assertQuerySucceeds("SELECT * FROM unnest(issues('invalid.token', 'nineinchnick', 'trino-rest', 1, '1970-01-01T00:00:00Z'))");
-        assertQuerySucceeds("SELECT * FROM unnest(issue_comments('invalid.token', 'nineinchnick', 'trino-rest', 1, '1970-01-01T00:00:00Z'))");
-        assertQuerySucceeds("SELECT * FROM unnest(pulls('invalid.token', 'nineinchnick', 'trino-rest', 1))");
-        assertQuerySucceeds("SELECT * FROM unnest(pull_commits('invalid.token', 'nineinchnick', 'trino-rest', 1))");
-        assertQuerySucceeds("SELECT * FROM unnest(reviews('invalid.token', 'nineinchnick', 'trino-rest', 1))");
-        assertQuerySucceeds("SELECT * FROM unnest(review_comments('invalid.token', 'nineinchnick', 'trino-rest', 1, 1))");
-        assertQuerySucceeds("SELECT * FROM unnest(runs('invalid.token', 'nineinchnick', 'trino-rest', 1))");
-        assertQuerySucceeds("SELECT * FROM unnest(jobs('invalid.token', 'nineinchnick', 'trino-rest', 1))");
-        assertQuerySucceeds("SELECT * FROM unnest(steps('invalid.token', 'nineinchnick', 'trino-rest', 1))");
-        assertQuerySucceeds("SELECT * FROM unnest(job_logs('invalid.token', 'nineinchnick', 'trino-rest', 1))");
-        assertQuerySucceeds("SELECT * FROM unnest(artifacts('invalid.token', 'nineinchnick', 'trino-rest', 1))");
+        String token = System.getenv("GITHUB_TOKEN");
+        if (token == null) {
+            token = "invalid.token";
+        }
+        assertQuerySucceeds("SELECT org('" + token + "', 'trinodb')");
+        assertQuerySucceeds("SELECT * FROM unnest(orgs('" + token + "', 1))");
+        assertQuerySucceeds("SELECT user('" + token + "', 'nineinchnick')");
+        assertQuerySucceeds("SELECT * FROM unnest(users('" + token + "', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(user_repos('" + token + "', 'nineinchnick'))");
+        assertQuerySucceeds("SELECT * FROM unnest(org_repos('" + token + "', 'trinodb'))");
+        assertQuerySucceeds("SELECT * FROM unnest(repos('" + token + "', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(issues('" + token + "', 'nineinchnick', 'trino-rest', 1, timestamp '1970-01-01 00:00:00'))");
+        assertQuerySucceeds("SELECT * FROM unnest(issue_comments('" + token + "', 'nineinchnick', 'trino-rest', 1, timestamp '1970-01-01 00:00:00'))");
+        assertQuerySucceeds("SELECT * FROM unnest(pulls('" + token + "', 'nineinchnick', 'trino-rest', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(pull_commits('" + token + "', 'nineinchnick', 'trino-rest', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(reviews('" + token + "', 'nineinchnick', 'trino-rest', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(review_comments('" + token + "', 'nineinchnick', 'trino-rest', 1, timestamp '1970-01-01 00:00:00'))");
+        assertQuerySucceeds("SELECT * FROM unnest(runs('" + token + "', 'nineinchnick', 'trino-rest', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(jobs('" + token + "', 'nineinchnick', 'trino-rest', 1))");
+        assertQuerySucceeds("SELECT * FROM unnest(steps('" + token + "', 'nineinchnick', 'trino-rest', 1))");
+        assertQuerySucceeds("SELECT job_logs('" + token + "', 'nineinchnick', 'trino-rest', 1)");
+        assertQuerySucceeds("SELECT * FROM unnest(artifacts('" + token + "', 'nineinchnick', 'trino-rest', 1))");
     }
 }

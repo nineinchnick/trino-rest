@@ -110,14 +110,14 @@
         <dependency>
             <groupId>io.trino</groupId>
             <artifactId>trino-main</artifactId>
-            <version>355</version>
+            <version>${dep.trino.version}</version>
         </dependency>
 
         <!-- for running PageSaver -->
         <dependency>
             <groupId>io.trino</groupId>
             <artifactId>trino-jdbc</artifactId>
-            <version>356</version>
+            <version>${dep.trino.version}</version>
             <scope>runtime</scope>
         </dependency>
 

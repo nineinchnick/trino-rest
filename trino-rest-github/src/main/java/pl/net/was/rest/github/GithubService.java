@@ -169,7 +169,7 @@ public interface GithubService
     Call<List<Organization>> listOrgs(
             @Header("Authorization") String auth,
             @Query("per_page") int perPage,
-            @Query("since") String since);
+            @Query("since") long since);
 
     @Headers("accept: application/vnd.github.v3+json")
     @GET("/orgs/{org}")
@@ -206,7 +206,7 @@ public interface GithubService
     Call<List<User>> listUsers(
             @Header("Authorization") String auth,
             @Query("per_page") int perPage,
-            @Query("since") String since);
+            @Query("since") long since);
 
     @Headers("accept: application/vnd.github.v3+json")
     @GET("/users/{username}")
