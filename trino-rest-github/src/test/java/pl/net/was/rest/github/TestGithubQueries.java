@@ -32,7 +32,7 @@ public class TestGithubQueries
     public void showTables()
     {
         assertQuery("SHOW SCHEMAS FROM github", "VALUES 'default', 'information_schema'");
-        assertQuery("SHOW TABLES FROM github.default", "VALUES 'orgs', 'users', 'repos', 'issues', 'issue_comments', 'pulls', 'pull_commits', 'reviews', 'review_comments', 'runs', 'jobs', 'steps'");
+        assertQuery("SHOW TABLES FROM github.default", "VALUES 'orgs', 'users', 'repos', 'issues', 'issue_comments', 'pulls', 'pull_commits', 'reviews', 'review_comments', 'runs', 'jobs', 'steps', 'artifacts'");
     }
 
     @Test
@@ -50,6 +50,7 @@ public class TestGithubQueries
         assertQuerySucceeds("SELECT * FROM runs WHERE owner = 'nineinchnick' AND repo = 'trino-rest'");
         assertQuerySucceeds("SELECT * FROM jobs WHERE owner = 'nineinchnick' AND repo = 'trino-rest'");
         assertQuerySucceeds("SELECT * FROM steps WHERE owner = 'nineinchnick' AND repo = 'trino-rest'");
+        assertQuerySucceeds("SELECT * FROM artifacts WHERE owner = 'nineinchnick' AND repo = 'trino-rest'");
     }
 
     @Test(invocationCount = 100)
