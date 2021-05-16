@@ -87,9 +87,9 @@ public class Review
                 pullNumber,
                 user.getId(),
                 user.getLogin(),
-                body,
-                state,
-                submittedAt,
+                body != null ? body : "",
+                state != null ? state : "",
+                packTimestamp(submittedAt),
                 commitId,
                 authorAssociation);
     }

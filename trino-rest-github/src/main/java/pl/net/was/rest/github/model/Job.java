@@ -99,12 +99,11 @@ public class Job
                 runId,
                 nodeId,
                 headSha,
-                status,
-                conclusion,
-                startedAt,
-                completedAt,
-                name,
-                steps);
+                status != null ? status : "",
+                conclusion != null ? conclusion : "",
+                packTimestamp(startedAt),
+                packTimestamp(completedAt),
+                name);
     }
 
     @Override

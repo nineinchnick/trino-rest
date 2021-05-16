@@ -91,6 +91,7 @@ public class TestGithubQueries
         assertQuerySucceeds("SELECT * FROM unnest(steps('nineinchnick', 'trino-rest', 1))");
         // TODO figure out why this requires special permissions
         //assertQuerySucceeds("SELECT job_logs('nineinchnick', 'trino-rest', 1)");
-        assertQuerySucceeds("SELECT * FROM unnest(artifacts('nineinchnick', 'trino-rest', 1))");
+        // TODO there are yet no artifacts in this repo
+        //assertQuerySucceeds("SELECT * FROM unnest(artifacts('nineinchnick', 'trino-rest', 1))");
     }
 }

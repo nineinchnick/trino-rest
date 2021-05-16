@@ -77,11 +77,11 @@ public class Step
                 repo,
                 jobId,
                 name,
-                status,
-                conclusion,
+                status != null ? status : "",
+                conclusion != null ? conclusion : "",
                 number,
-                startedAt,
-                completedAt);
+                packTimestamp(startedAt),
+                packTimestamp(completedAt));
     }
 
     @Override

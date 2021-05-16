@@ -93,12 +93,12 @@ public class Run
                 headBranch,
                 headSha,
                 runNumber,
-                event,
-                status,
-                conclusion,
+                event != null ? event : "",
+                status != null ? status : "",
+                conclusion != null ? conclusion : "",
                 workflowId,
-                createdAt,
-                updatedAt);
+                packTimestamp(createdAt),
+                packTimestamp(updatedAt));
     }
 
     @Override
