@@ -43,9 +43,9 @@ public class GithubQueryRunner
         queryRunner.installPlugin(new GithubPlugin());
 
         String token = requireNonNullElse(
-                System.getenv("GITHUB_TOKEN"),
+                System.getenv("GH_TOKEN"),
                 requireNonNullElse(
-                        System.getenv("GH_TOKEN"),
+                        System.getenv("GITHUB_TOKEN"),
                         ""));
         queryRunner.createCatalog(
                 "github",
