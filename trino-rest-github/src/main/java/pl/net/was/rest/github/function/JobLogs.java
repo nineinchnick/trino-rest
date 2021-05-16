@@ -24,13 +24,13 @@ import okhttp3.ResponseBody;
 import retrofit2.Response;
 
 import java.io.IOException;
-import java.util.Objects;
 
 import static io.trino.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 import static io.trino.spi.type.StandardTypes.BIGINT;
 import static io.trino.spi.type.StandardTypes.VARCHAR;
 import static java.lang.String.format;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
+import static java.util.Objects.requireNonNull;
 
 @ScalarFunction("job_logs")
 @Description("Get workflow job logs")
@@ -54,7 +54,7 @@ public class JobLogs
         if (!response.isSuccessful()) {
             throw new TrinoException(GENERIC_INTERNAL_ERROR, format("Invalid response, code %d, message: %s", response.code(), response.message()));
         }
-        ResponseBody body = Objects.requireNonNull(response.body());
+        ResponseBody body = requireNonNull(response.body());
         String log = body.string().replaceAll("\u0000", "");
         return Slices.utf8Slice(log);
     }

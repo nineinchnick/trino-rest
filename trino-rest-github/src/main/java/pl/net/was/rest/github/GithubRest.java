@@ -73,7 +73,6 @@ import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -88,6 +87,7 @@ import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.BooleanType.BOOLEAN;
 import static io.trino.spi.type.VarcharType.createUnboundedVarcharType;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static pl.net.was.rest.github.function.Artifacts.download;
@@ -772,7 +772,6 @@ public class GithubRest
         return getRow(() -> service.getUser("Bearer " + token, login), User::toRow);
     }
 
-
     private Collection<? extends List<?>> getRepos(RestTableHandle table)
     {
         String tableName = table.getSchemaTableName().getTableName();
@@ -966,8 +965,8 @@ public class GithubRest
             if (!response.isSuccessful()) {
                 throw new TrinoException(GENERIC_INTERNAL_ERROR, "Unable to read: " + response.message());
             }
-            List<Job> items = Objects.requireNonNull(response.body()).getItems();
-            if (items == null || items.size() == 0) {
+            List<Job> items = requireNonNull(response.body()).getItems();
+            if (items.size() == 0) {
                 break;
             }
             items.forEach(i -> i.setOwner(owner));
@@ -982,7 +981,6 @@ public class GithubRest
         }
         return result.build();
     }
-
 
     private Collection<? extends List<?>> getArtifacts(RestTableHandle table)
     {
@@ -1048,8 +1046,8 @@ public class GithubRest
             if (!response.isSuccessful()) {
                 throw new TrinoException(GENERIC_INTERNAL_ERROR, "Unable to read: " + response.message());
             }
-            List<T> items = response.body();
-            if (items == null || items.size() == 0) {
+            List<T> items = requireNonNull(response.body());
+            if (items.size() == 0) {
                 break;
             }
             result.addAll(items.stream().map(mapper).collect(toList()));
@@ -1078,8 +1076,8 @@ public class GithubRest
             if (!response.isSuccessful()) {
                 throw new TrinoException(GENERIC_INTERNAL_ERROR, "Unable to read: " + response.message());
             }
-            List<T> items = Objects.requireNonNull(response.body()).getItems();
-            if (items == null || items.size() == 0) {
+            List<T> items = requireNonNull(response.body()).getItems();
+            if (items.size() == 0) {
                 break;
             }
             result.addAll(items.stream().map(mapper).collect(toList()));

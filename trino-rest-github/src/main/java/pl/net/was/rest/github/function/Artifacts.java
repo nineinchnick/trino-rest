@@ -34,13 +34,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import static io.trino.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 import static io.trino.spi.type.StandardTypes.BIGINT;
 import static io.trino.spi.type.StandardTypes.VARCHAR;
 import static java.lang.String.format;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
+import static java.util.Objects.requireNonNull;
 import static pl.net.was.rest.github.GithubRest.ARTIFACTS_TABLE_TYPE;
 import static pl.net.was.rest.github.GithubRest.getRowType;
 
@@ -79,7 +79,7 @@ public class Artifacts
                 throw new TrinoException(GENERIC_INTERNAL_ERROR, format("Invalid response, code %d, message: %s", response.code(), response.message()));
             }
             ArtifactsList envelope = response.body();
-            total = Objects.requireNonNull(envelope).getTotalCount();
+            total = requireNonNull(envelope).getTotalCount();
             List<Artifact> items = envelope.getItems();
             if (items.size() == 0) {
                 break;
@@ -106,7 +106,7 @@ public class Artifacts
         if (!response.isSuccessful()) {
             throw new TrinoException(GENERIC_INTERNAL_ERROR, format("Invalid response, code %d, message: %s", response.code(), response.message()));
         }
-        ResponseBody body = Objects.requireNonNull(response.body());
+        ResponseBody body = requireNonNull(response.body());
         return body.byteStream();
     }
 }

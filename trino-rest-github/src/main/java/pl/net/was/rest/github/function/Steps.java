@@ -32,7 +32,6 @@ import retrofit2.Response;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 import static io.trino.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
@@ -40,6 +39,7 @@ import static io.trino.spi.type.StandardTypes.BIGINT;
 import static io.trino.spi.type.StandardTypes.VARCHAR;
 import static java.lang.String.format;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
+import static java.util.Objects.requireNonNull;
 import static pl.net.was.rest.github.GithubRest.STEPS_TABLE_TYPE;
 import static pl.net.was.rest.github.GithubRest.getRowType;
 
@@ -79,7 +79,7 @@ public class Steps
                 throw new TrinoException(GENERIC_INTERNAL_ERROR, format("Invalid response, code %d, message: %s", response.code(), response.message()));
             }
             JobsList envelope = response.body();
-            total = Objects.requireNonNull(envelope).getTotalCount();
+            total = requireNonNull(envelope).getTotalCount();
             List<Job> items = envelope.getItems();
             if (items.size() == 0) {
                 break;

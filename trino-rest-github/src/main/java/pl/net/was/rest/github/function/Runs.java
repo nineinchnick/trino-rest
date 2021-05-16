@@ -30,13 +30,13 @@ import retrofit2.Response;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Objects;
 
 import static io.trino.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 import static io.trino.spi.type.StandardTypes.INTEGER;
 import static io.trino.spi.type.StandardTypes.VARCHAR;
 import static java.lang.String.format;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
+import static java.util.Objects.requireNonNull;
 import static pl.net.was.rest.github.GithubRest.RUNS_TABLE_TYPE;
 import static pl.net.was.rest.github.GithubRest.getRowType;
 
@@ -69,7 +69,7 @@ public class Runs
             throw new TrinoException(GENERIC_INTERNAL_ERROR, format("Invalid response, code %d, message: %s", response.code(), response.message()));
         }
         RunsList envelope = response.body();
-        List<Run> items = Objects.requireNonNull(envelope).getItems();
+        List<Run> items = requireNonNull(envelope).getItems();
         items.forEach(i -> i.setOwner(owner.toStringUtf8()));
         items.forEach(i -> i.setRepo(repo.toStringUtf8()));
         return buildBlock(items);

@@ -23,7 +23,7 @@ import static java.util.Objects.requireNonNull;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ArtifactsList
-    implements Envelope<Artifact>
+        implements Envelope<Artifact>
 {
     private final long totalCount;
     private final List<Artifact> artifacts;

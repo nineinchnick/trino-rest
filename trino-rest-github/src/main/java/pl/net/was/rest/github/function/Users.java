@@ -35,7 +35,6 @@ import static io.trino.spi.type.StandardTypes.BIGINT;
 import static io.trino.spi.type.StandardTypes.VARCHAR;
 import static java.lang.String.format;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
-import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 import static pl.net.was.rest.github.GithubRest.USERS_TABLE_TYPE;
 import static pl.net.was.rest.github.GithubRest.getRowType;
 

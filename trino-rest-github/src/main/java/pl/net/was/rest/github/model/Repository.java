@@ -57,7 +57,6 @@ public class Repository
         this.url = url;
     }
 
-
     public List<?> toRow()
     {
         // TODO allow nulls

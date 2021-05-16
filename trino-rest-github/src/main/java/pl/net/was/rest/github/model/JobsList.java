@@ -23,7 +23,7 @@ import static java.util.Objects.requireNonNull;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class JobsList
-    implements Envelope<Job>
+        implements Envelope<Job>
 {
     private final long totalCount;
     private final List<Job> jobs;

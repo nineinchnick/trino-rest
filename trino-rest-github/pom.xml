@@ -113,6 +113,13 @@
             <version>${dep.trino.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.openjdk.jol</groupId>
+            <artifactId>jol-core</artifactId>
+            <version>0.2</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- for running PageSaver -->
         <dependency>
             <groupId>io.trino</groupId>

@@ -104,8 +104,7 @@ public class Artifact
 
         ZipInputStream zis = new ZipInputStream(zipContents);
         ZipEntry entry;
-        while ((entry = zis.getNextEntry()) != null)
-        {
+        while ((entry = zis.getNextEntry()) != null) {
             if (entry.isDirectory()) {
                 continue;
             }

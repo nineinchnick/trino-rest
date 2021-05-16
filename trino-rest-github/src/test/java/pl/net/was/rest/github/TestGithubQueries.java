@@ -76,7 +76,6 @@ public class TestGithubQueries
         computeActual("SELECT user('invalid.token', 'nineinchnick')");
     }
 
-
     @Test(invocationCount = 100)
     public void selectFromFunction()
     {
