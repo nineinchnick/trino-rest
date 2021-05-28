@@ -90,7 +90,7 @@
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>log-manager</artifactId>
-            <version>205</version>
+            <version>206</version>
         </dependency>
 
         <dependency>
