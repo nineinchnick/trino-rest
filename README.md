@@ -44,7 +44,7 @@ After reloading Trino, you should be able to connect to the `github` catalog and
 * `jobs`
 * `steps`
 * `artifacts`
-* `runners'
+* `runners`
 
 Most tables always require conditions on specific columns, like 'owner' and 'repo'.
 
