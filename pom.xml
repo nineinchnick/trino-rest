@@ -18,7 +18,7 @@
 
     <groupId>pl.net.was</groupId>
     <artifactId>trino-rest</artifactId>
-    <version>0.25-SNAPSHOT</version>
+    <version>0.26-SNAPSHOT</version>
     <description>Trino RESTful Connectors</description>
     <packaging>pom</packaging>
 
@@ -61,7 +61,7 @@
         <dep.airlift.version>208</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.errorprone.version>2.9.0</dep.errorprone.version>
-        <dep.jackson.version>2.12.4</dep.jackson.version>
+        <dep.jackson.version>2.12.5</dep.jackson.version>
         <dep.testng.version>6.10</dep.testng.version>
 
         <project.scm.id>github</project.scm.id>
