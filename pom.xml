@@ -18,7 +18,7 @@
 
     <groupId>pl.net.was</groupId>
     <artifactId>trino-rest</artifactId>
-    <version>0.25-SNAPSHOT</version>
+    <version>0.26-SNAPSHOT</version>
     <description>Trino RESTful Connectors</description>
     <packaging>pom</packaging>
 
@@ -30,7 +30,7 @@
     <parent>
         <groupId>io.airlift</groupId>
         <artifactId>airbase</artifactId>
-        <version>112</version>
+        <version>113</version>
     </parent>
 
     <licenses>
