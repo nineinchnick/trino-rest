@@ -32,6 +32,7 @@ public class ReviewComment
     private final String url;
     private final long pullRequestReviewId;
     private final long id;
+    private final String nodeId;
     private final String diffHunk;
     private final String path;
     private final long position;
@@ -46,6 +47,7 @@ public class ReviewComment
     private final String htmlUrl;
     private final String pullRequestUrl;
     private final String authorAssociation;
+    private final Reactions reactions;
     private final long startLine;
     private final long originalStartLine;
     private final String startSide;
@@ -57,6 +59,7 @@ public class ReviewComment
             @JsonProperty("url") String url,
             @JsonProperty("pull_request_review_id") long pullRequestReviewId,
             @JsonProperty("id") long id,
+            @JsonProperty("node_id") String nodeId,
             @JsonProperty("diff_hunk") String diffHunk,
             @JsonProperty("path") String path,
             @JsonProperty("position") long position,
@@ -71,6 +74,8 @@ public class ReviewComment
             @JsonProperty("html_url") String htmlUrl,
             @JsonProperty("pull_request_url") String pullRequestUrl,
             @JsonProperty("author_association") String authorAssociation,
+            @JsonProperty("_links") Object unusedLinks,
+            @JsonProperty("reactions") Reactions reactions,
             @JsonProperty("start_line") long startLine,
             @JsonProperty("original_start_line") long originalStartLine,
             @JsonProperty("start_side") String startSide,
@@ -81,6 +86,7 @@ public class ReviewComment
         this.url = url;
         this.pullRequestReviewId = pullRequestReviewId;
         this.id = id;
+        this.nodeId = nodeId;
         this.diffHunk = diffHunk;
         this.path = path;
         this.position = position;
@@ -95,6 +101,7 @@ public class ReviewComment
         this.htmlUrl = htmlUrl;
         this.pullRequestUrl = pullRequestUrl;
         this.authorAssociation = authorAssociation;
+        this.reactions = reactions;
         this.startLine = startLine;
         this.originalStartLine = originalStartLine;
         this.startSide = startSide;

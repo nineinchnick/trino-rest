@@ -30,6 +30,7 @@ public class IssueComment
     private String owner;
     private String repo;
     private final long id;
+    private final String nodeId;
     private final String url;
     private final String htmlUrl;
     private final String body;
@@ -38,9 +39,12 @@ public class IssueComment
     private final ZonedDateTime updatedAt;
     private final String issueUrl;
     private final String authorAssociation;
+    private final Reactions reactions;
+    private final App performedViaGithubApp;
 
     public IssueComment(
             @JsonProperty("id") long id,
+            @JsonProperty("node_id") String nodeId,
             @JsonProperty("url") String url,
             @JsonProperty("html_url") String htmlUrl,
             @JsonProperty("body") String body,
@@ -48,9 +52,12 @@ public class IssueComment
             @JsonProperty("created_at") ZonedDateTime createdAt,
             @JsonProperty("updated_at") ZonedDateTime updatedAt,
             @JsonProperty("issue_url") String issueUrl,
-            @JsonProperty("author_association") String authorAssociation)
+            @JsonProperty("author_association") String authorAssociation,
+            @JsonProperty("reactions") Reactions reactions,
+            @JsonProperty("performed_via_github_app") App performedViaGithubApp)
     {
         this.id = id;
+        this.nodeId = nodeId;
         this.url = url;
         this.htmlUrl = htmlUrl;
         this.body = body;
@@ -59,6 +66,8 @@ public class IssueComment
         this.updatedAt = updatedAt;
         this.issueUrl = issueUrl;
         this.authorAssociation = authorAssociation;
+        this.reactions = reactions;
+        this.performedViaGithubApp = performedViaGithubApp;
     }
 
     public void setOwner(String owner)

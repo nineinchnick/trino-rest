@@ -24,11 +24,21 @@ import java.util.List;
 import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.BooleanType.BOOLEAN;
 
+@SuppressWarnings("unused")
 public class Organization
         extends BaseBlockWriter
 {
     private final String login;
     private final long id;
+    private final String nodeId;
+    private final String url;
+    private final String reposUrl;
+    private final String eventsUrl;
+    private final String hooksUrl;
+    private final String issuesUrl;
+    private final String membersUrl;
+    private final String publicMembersUrl;
+    private final String avatarUrl;
     private final String description;
     private final String name;
     private final String company;
@@ -43,6 +53,7 @@ public class Organization
     private final long publicGists;
     private final long followers;
     private final long following;
+    private final String htmlUrl;
     private final ZonedDateTime createdAt;
     private final ZonedDateTime updatedAt;
     private final String type;
@@ -52,6 +63,7 @@ public class Organization
     private final long diskUsage;
     private final long collaborators;
     private final String billingEmail;
+    private final Plan plan;
     private final String defaultRepositoryPermission;
     private final boolean membersCanCreateRepositories;
     private final boolean twoFactorRequirementEnabled;
@@ -60,10 +72,21 @@ public class Organization
     private final boolean membersCanCreatePrivateRepositories;
     private final boolean membersCanCreateInternalRepositories;
     private final boolean membersCanCreatePages;
+    private final boolean membersCanCreatePublicPages;
+    private final boolean membersCanCreatePrivatePages;
 
     public Organization(
             @JsonProperty("login") String login,
             @JsonProperty("id") long id,
+            @JsonProperty("node_id") String nodeId,
+            @JsonProperty("url") String url,
+            @JsonProperty("repos_url") String reposUrl,
+            @JsonProperty("events_url") String eventsUrl,
+            @JsonProperty("hooks_url") String hooksUrl,
+            @JsonProperty("issues_url") String issuesUrl,
+            @JsonProperty("members_url") String membersUrl,
+            @JsonProperty("public_members_url") String publicMembersUrl,
+            @JsonProperty("avatar_url") String avatarUrl,
             @JsonProperty("description") String description,
             @JsonProperty("name") String name,
             @JsonProperty("company") String company,
@@ -78,6 +101,7 @@ public class Organization
             @JsonProperty("public_gists") long publicGists,
             @JsonProperty("followers") long followers,
             @JsonProperty("following") long following,
+            @JsonProperty("html_url") String htmlUrl,
             @JsonProperty("created_at") ZonedDateTime createdAt,
             @JsonProperty("updated_at") ZonedDateTime updatedAt,
             @JsonProperty("type") String type,
@@ -87,6 +111,7 @@ public class Organization
             @JsonProperty("disk_usage") long diskUsage,
             @JsonProperty("collaborators") long collaborators,
             @JsonProperty("billing_email") String billingEmail,
+            @JsonProperty("plan") Plan plan,
             @JsonProperty("default_repository_permission") String defaultRepositoryPermission,
             @JsonProperty("members_can_create_repositories") boolean membersCanCreateRepositories,
             @JsonProperty("two_factor_requirement_enabled") boolean twoFactorRequirementEnabled,
@@ -94,10 +119,21 @@ public class Organization
             @JsonProperty("members_can_create_public_repositories") boolean membersCanCreatePublicRepositories,
             @JsonProperty("members_can_create_private_repositories") boolean membersCanCreatePrivateRepositories,
             @JsonProperty("members_can_create_internal_repositories") boolean membersCanCreateInternalRepositories,
-            @JsonProperty("members_can_create_pages") boolean membersCanCreatePages)
+            @JsonProperty("members_can_create_pages") boolean membersCanCreatePages,
+            @JsonProperty("members_can_create_public_pages") boolean membersCanCreatePublicPages,
+            @JsonProperty("members_can_create_private_pages") boolean membersCanCreatePrivatePages)
     {
         this.login = login;
         this.id = id;
+        this.nodeId = nodeId;
+        this.url = url;
+        this.reposUrl = reposUrl;
+        this.eventsUrl = eventsUrl;
+        this.hooksUrl = hooksUrl;
+        this.issuesUrl = issuesUrl;
+        this.membersUrl = membersUrl;
+        this.publicMembersUrl = publicMembersUrl;
+        this.avatarUrl = avatarUrl;
         this.description = description;
         this.name = name;
         this.company = company;
@@ -112,6 +148,7 @@ public class Organization
         this.publicGists = publicGists;
         this.followers = followers;
         this.following = following;
+        this.htmlUrl = htmlUrl;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.type = type;
@@ -121,6 +158,7 @@ public class Organization
         this.diskUsage = diskUsage;
         this.collaborators = collaborators;
         this.billingEmail = billingEmail;
+        this.plan = plan;
         this.defaultRepositoryPermission = defaultRepositoryPermission;
         this.membersCanCreateRepositories = membersCanCreateRepositories;
         this.twoFactorRequirementEnabled = twoFactorRequirementEnabled;
@@ -129,6 +167,8 @@ public class Organization
         this.membersCanCreatePrivateRepositories = membersCanCreatePrivateRepositories;
         this.membersCanCreateInternalRepositories = membersCanCreateInternalRepositories;
         this.membersCanCreatePages = membersCanCreatePages;
+        this.membersCanCreatePublicPages = membersCanCreatePublicPages;
+        this.membersCanCreatePrivatePages = membersCanCreatePrivatePages;
     }
 
     public List<?> toRow()
@@ -167,7 +207,9 @@ public class Organization
                 membersCanCreatePublicRepositories,
                 membersCanCreatePrivateRepositories,
                 membersCanCreateInternalRepositories,
-                membersCanCreatePages);
+                membersCanCreatePages,
+                membersCanCreatePublicPages,
+                membersCanCreatePrivatePages);
     }
 
     @Override
@@ -207,5 +249,7 @@ public class Organization
         BOOLEAN.writeBoolean(rowBuilder, membersCanCreatePrivateRepositories);
         BOOLEAN.writeBoolean(rowBuilder, membersCanCreateInternalRepositories);
         BOOLEAN.writeBoolean(rowBuilder, membersCanCreatePages);
+        BOOLEAN.writeBoolean(rowBuilder, membersCanCreatePublicPages);
+        BOOLEAN.writeBoolean(rowBuilder, membersCanCreatePrivatePages);
     }
 }

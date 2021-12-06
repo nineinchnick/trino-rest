@@ -182,7 +182,9 @@ public class GithubRest
                     new ColumnMetadata("members_can_create_public_repositories", BOOLEAN),
                     new ColumnMetadata("members_can_create_private_repositories", BOOLEAN),
                     new ColumnMetadata("members_can_create_internal_repositories", BOOLEAN),
-                    new ColumnMetadata("members_can_create_pages", BOOLEAN)))
+                    new ColumnMetadata("members_can_create_pages", BOOLEAN),
+                    new ColumnMetadata("members_can_create_public_pages", BOOLEAN),
+                    new ColumnMetadata("members_can_create_private_pages", BOOLEAN)))
             .put(GithubTable.USERS, ImmutableList.of(
                     new ColumnMetadata("login", VARCHAR),
                     new ColumnMetadata("id", BIGINT),
@@ -274,7 +276,7 @@ public class GithubRest
                     new ColumnMetadata("pull_number", BIGINT),
                     new ColumnMetadata("commit_message", VARCHAR),
                     new ColumnMetadata("commit_tree_sha", VARCHAR),
-                    new ColumnMetadata("commit_comments_count", BIGINT),
+                    new ColumnMetadata("commit_comment_count", BIGINT),
                     new ColumnMetadata("commit_verified", BOOLEAN),
                     new ColumnMetadata("commit_verification_reason", VARCHAR),
                     new ColumnMetadata("author_name", VARCHAR),
@@ -347,7 +349,8 @@ public class GithubRest
                     new ColumnMetadata("closed_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
                     new ColumnMetadata("created_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
                     new ColumnMetadata("updated_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
-                    new ColumnMetadata("author_association", VARCHAR)))
+                    new ColumnMetadata("author_association", VARCHAR),
+                    new ColumnMetadata("draft", BOOLEAN)))
             .put(GithubTable.ISSUE_COMMENTS, ImmutableList.of(
                     new ColumnMetadata("owner", VARCHAR),
                     new ColumnMetadata("repo", VARCHAR),
@@ -377,20 +380,25 @@ public class GithubRest
                     new ColumnMetadata("id", BIGINT),
                     new ColumnMetadata("name", VARCHAR),
                     new ColumnMetadata("node_id", VARCHAR),
+                    new ColumnMetadata("check_suite_id", BIGINT),
+                    new ColumnMetadata("check_suite_node_id", VARCHAR),
                     new ColumnMetadata("head_branch", VARCHAR),
                     new ColumnMetadata("head_sha", VARCHAR),
                     new ColumnMetadata("run_number", BIGINT),
+                    new ColumnMetadata("run_attempt", INTEGER),
                     new ColumnMetadata("event", VARCHAR),
                     new ColumnMetadata("status", VARCHAR),
                     new ColumnMetadata("conclusion", VARCHAR),
                     new ColumnMetadata("workflow_id", BIGINT),
                     new ColumnMetadata("created_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
-                    new ColumnMetadata("updated_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3))))
+                    new ColumnMetadata("updated_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
+                    new ColumnMetadata("run_started_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3))))
             .put(GithubTable.JOBS, ImmutableList.of(
                     new ColumnMetadata("owner", VARCHAR),
                     new ColumnMetadata("repo", VARCHAR),
                     new ColumnMetadata("id", BIGINT),
                     new ColumnMetadata("run_id", BIGINT),
+                    new ColumnMetadata("run_attempt", INTEGER),
                     new ColumnMetadata("node_id", VARCHAR),
                     new ColumnMetadata("head_sha", VARCHAR),
                     new ColumnMetadata("status", VARCHAR),
@@ -409,6 +417,7 @@ public class GithubRest
                     new ColumnMetadata("owner", VARCHAR),
                     new ColumnMetadata("repo", VARCHAR),
                     new ColumnMetadata("run_id", BIGINT),
+                    new ColumnMetadata("run_attempt", INTEGER),
                     new ColumnMetadata("job_id", BIGINT),
                     new ColumnMetadata("name", VARCHAR),
                     new ColumnMetadata("status", VARCHAR),
@@ -521,13 +530,16 @@ public class GithubRest
                     "repo", KeyType.FOREIGN_KEY))
             .put(GithubTable.RUNS, ImmutableMap.of(
                     "id", KeyType.PRIMARY_KEY,
-                    "run_number", KeyType.FOREIGN_KEY))
+                    "run_number", KeyType.FOREIGN_KEY,
+                    "run_attempt", KeyType.FOREIGN_KEY))
             .put(GithubTable.JOBS, ImmutableMap.of(
                     "id", KeyType.PRIMARY_KEY,
-                    "run_id", KeyType.FOREIGN_KEY))
+                    "run_id", KeyType.FOREIGN_KEY,
+                    "run_attempt", KeyType.FOREIGN_KEY))
             .put(GithubTable.STEPS, ImmutableMap.of(
                     "job_id", KeyType.FOREIGN_KEY,
-                    "run_id", KeyType.FOREIGN_KEY))
+                    "run_id", KeyType.FOREIGN_KEY,
+                    "run_attempt", KeyType.FOREIGN_KEY))
             .put(GithubTable.ARTIFACTS, ImmutableMap.of(
                     "id", KeyType.PRIMARY_KEY,
                     "run_id", KeyType.FOREIGN_KEY))
@@ -669,7 +681,9 @@ public class GithubRest
             "members_can_create_public_repositories boolean, " +
             "members_can_create_private_repositories boolean, " +
             "members_can_create_internal_repositories boolean, " +
-            "members_can_create_pages boolean" +
+            "members_can_create_pages boolean, " +
+            "members_can_create_public_pages boolean, " +
+            "members_can_create_private_pages boolean" +
             ")";
 
     public static final String ORGS_TABLE_TYPE = "array(" + ORG_ROW_TYPE + ")";
@@ -772,7 +786,7 @@ public class GithubRest
             "pull_number bigint, " +
             "commit_message varchar, " +
             "commit_tree_sha varchar, " +
-            "commit_comments_count bigint, " +
+            "commit_comment_count bigint, " +
             "commit_verified boolean, " +
             "commit_verification_reason varchar, " +
             "author_name varchar, " +
@@ -850,7 +864,8 @@ public class GithubRest
             "closed_at timestamp(3) with time zone, " +
             "created_at timestamp(3) with time zone, " +
             "updated_at timestamp(3) with time zone, " +
-            "author_association varchar" +
+            "author_association varchar, " +
+            "draft boolean" +
             "))";
 
     public static final String ISSUE_COMMENTS_TABLE_TYPE = "array(row(" +
@@ -886,15 +901,19 @@ public class GithubRest
             "id bigint, " +
             "name varchar, " +
             "node_id varchar, " +
+            "check_suite_id bigint, " +
+            "check_suite_node_id varchar, " +
             "head_branch varchar, " +
             "head_sha varchar, " +
             "run_number bigint, " +
+            "run_attempt integer, " +
             "event varchar, " +
             "status varchar, " +
             "conclusion varchar, " +
             "workflow_id bigint, " +
             "created_at timestamp(3) with time zone, " +
-            "updated_at timestamp(3) with time zone" +
+            "updated_at timestamp(3) with time zone, " +
+            "run_started_at timestamp(3) with time zone" +
             "))";
 
     public static final String JOBS_TABLE_TYPE = "array(row(" +
@@ -902,6 +921,7 @@ public class GithubRest
             "repo varchar, " +
             "id bigint, " +
             "run_id bigint, " +
+            "run_attempt integer, " +
             "node_id varchar, " +
             "head_sha varchar, " +
             "status varchar, " +
@@ -924,6 +944,7 @@ public class GithubRest
             "owner varchar, " +
             "repo varchar, " +
             "run_id bigint, " +
+            "run_attempt integer, " +
             "job_id bigint, " +
             "name varchar, " +
             "status varchar, " +

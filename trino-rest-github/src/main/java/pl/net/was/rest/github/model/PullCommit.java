@@ -31,30 +31,33 @@ public class PullCommit
     private String owner;
     private String repo;
     private long pullNumber;
-    private final String url;
     private final String sha;
+    private final String nodeId;
+    private final Commit commit;
+    private final String url;
     private final String htmlUrl;
     private final String commentsUrl;
-    private final Commit commit;
     private final User author;
     private final User committer;
     private final List<Ref> parents;
 
     public PullCommit(
-            @JsonProperty("url") String url,
             @JsonProperty("sha") String sha,
+            @JsonProperty("node_id") String nodeId,
+            @JsonProperty("commit") Commit commit,
+            @JsonProperty("url") String url,
             @JsonProperty("html_url") String htmlUrl,
             @JsonProperty("comments_url") String commentsUrl,
-            @JsonProperty("commit") Commit commit,
             @JsonProperty("author") User author,
             @JsonProperty("committer") User committer,
             @JsonProperty("parents") List<Ref> parents)
     {
-        this.url = url;
         this.sha = sha;
+        this.nodeId = nodeId;
+        this.commit = commit;
+        this.url = url;
         this.htmlUrl = htmlUrl;
         this.commentsUrl = commentsUrl;
-        this.commit = commit;
         this.author = author;
         this.committer = committer;
         this.parents = parents;
@@ -89,7 +92,7 @@ public class PullCommit
                 pullNumber,
                 commit.getMessage(),
                 commit.getTree().getSha(),
-                commit.getCommentsCount(),
+                commit.getCommentCount(),
                 commit.getVerification().getVerified(),
                 commit.getVerification().getReason(),
                 commit.getAuthor().getName(),
@@ -114,7 +117,7 @@ public class PullCommit
         BIGINT.writeLong(rowBuilder, pullNumber);
         writeString(rowBuilder, commit.getMessage());
         writeString(rowBuilder, commit.getTree().getSha());
-        BIGINT.writeLong(rowBuilder, commit.getCommentsCount());
+        BIGINT.writeLong(rowBuilder, commit.getCommentCount());
         BOOLEAN.writeBoolean(rowBuilder, commit.getVerification().getVerified());
         writeString(rowBuilder, commit.getVerification().getReason());
         writeString(rowBuilder, commit.getAuthor().getName());

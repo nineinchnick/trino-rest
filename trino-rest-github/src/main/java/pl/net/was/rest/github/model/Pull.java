@@ -31,106 +31,131 @@ public class Pull
 {
     private String owner;
     private String repo;
-    private final long id;
     private final String url;
+    private final long id;
+    private final String nodeId;
     private final String htmlUrl;
     private final String diffUrl;
     private final String patchUrl;
     private final String issueUrl;
+    private final long number;
+    private final String state;
+    private final boolean locked;
+    private final String title;
+    private final User user;
+    private final String body;
+    private final ZonedDateTime createdAt;
+    private final ZonedDateTime updatedAt;
+    private final ZonedDateTime closedAt;
+    private final ZonedDateTime mergedAt;
+    private final String mergeCommitSha;
+    private final User assignee;
+    private final List<User> assignees;
+    private final List<User> requestedReviewers;
+    private final List<Team> requestedTeams;
+    private final List<Label> labels;
+    private final Milestone milestone;
+    private final boolean draft;
     private final String commitsUrl;
     private final String reviewCommentsUrl;
     private final String reviewCommentUrl;
     private final String commentsUrl;
     private final String statusesUrl;
-    private final long number;
-    private final String state;
-    private final Boolean locked;
-    private final String title;
-    private final User user;
-    private final String body;
-    private final List<Label> labels;
-    private final Milestone milestone;
-    private final String activeLockReason;
-    private final ZonedDateTime createdAt;
-    private final ZonedDateTime updatedAt;
-    private final ZonedDateTime closedAt;
-    private final ZonedDateTime mergedAt;
-    private final String mergedCommitSha;
-    private final User assignee;
-    private final List<User> requestedReviewers;
     private final String headRef;
     private final String headSha;
     private final String baseRef;
     private final String baseSha;
     private final String authorAssociation;
-    private final Boolean draft;
+    private final boolean autoMerge;
+    private final String activeLockReason;
 
     public Pull(
-            @JsonProperty("id") long id,
             @JsonProperty("url") String url,
+            @JsonProperty("id") long id,
+            @JsonProperty("node_id") String nodeId,
             @JsonProperty("html_url") String htmlUrl,
             @JsonProperty("diff_url") String diffUrl,
             @JsonProperty("patch_url") String patchUrl,
             @JsonProperty("issue_url") String issueUrl,
+            @JsonProperty("number") long number,
+            @JsonProperty("state") String state,
+            @JsonProperty("locked") boolean locked,
+            @JsonProperty("title") String title,
+            @JsonProperty("user") User user,
+            @JsonProperty("body") String body,
+            @JsonProperty("created_at") ZonedDateTime createdAt,
+            @JsonProperty("updated_at") ZonedDateTime updatedAt,
+            @JsonProperty("closed_at") ZonedDateTime closedAt,
+            @JsonProperty("merged_at") ZonedDateTime mergedAt,
+            @JsonProperty("merge_commit_sha") String mergeCommitSha,
+            @JsonProperty("assignee") User assignee,
+            @JsonProperty("assignees") List<User> assignees,
+            @JsonProperty("requested_reviewers") List<User> requestedReviewers,
+            @JsonProperty("requested_teams") List<Team> requestedTeams,
+            @JsonProperty("labels") List<Label> labels,
+            @JsonProperty("milestone") Milestone milestone,
+            @JsonProperty("draft") boolean draft,
             @JsonProperty("commits_url") String commitsUrl,
             @JsonProperty("review_comments_url") String reviewCommentsUrl,
             @JsonProperty("review_comment_url") String reviewCommentUrl,
             @JsonProperty("comments_url") String commentsUrl,
             @JsonProperty("statuses_url") String statusesUrl,
-            @JsonProperty("number") long number,
-            @JsonProperty("state") String state,
-            @JsonProperty("locked") Boolean locked,
-            @JsonProperty("title") String title,
-            @JsonProperty("user") User user,
-            @JsonProperty("body") String body,
-            @JsonProperty("labels") List<Label> labels,
-            @JsonProperty("milestone") Milestone milestone,
-            @JsonProperty("active_lock_reason") String activeLockReason,
-            @JsonProperty("created_at") ZonedDateTime createdAt,
-            @JsonProperty("updated_at") ZonedDateTime updatedAt,
-            @JsonProperty("closed_at") ZonedDateTime closedAt,
-            @JsonProperty("merged_at") ZonedDateTime mergedAt,
-            @JsonProperty("merged_commit_sha") String mergedCommitSha,
-            @JsonProperty("assignee") User assignee,
-            @JsonProperty("requested_reviewers") List<User> requestedReviewers,
             @JsonProperty("head") Ref head,
             @JsonProperty("base") Ref base,
+            @JsonProperty("_links") Object unusedLinks,
             @JsonProperty("author_association") String authorAssociation,
-            @JsonProperty("draft") Boolean draft)
+            @JsonProperty("auto_merge") boolean autoMerge,
+            @JsonProperty("active_lock_reason") String activeLockReason)
     {
-        this.id = id;
         this.url = url;
+        this.id = id;
+        this.nodeId = nodeId;
         this.htmlUrl = htmlUrl;
         this.diffUrl = diffUrl;
         this.patchUrl = patchUrl;
         this.issueUrl = issueUrl;
-        this.commitsUrl = commitsUrl;
-        this.reviewCommentsUrl = reviewCommentsUrl;
-        this.reviewCommentUrl = reviewCommentUrl;
-        this.commentsUrl = commentsUrl;
-        this.statusesUrl = statusesUrl;
         this.number = number;
         this.state = state;
         this.locked = locked;
         this.title = title;
         this.user = user;
         this.body = body;
-        this.labels = labels;
-        this.milestone = milestone;
-        this.activeLockReason = activeLockReason;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.closedAt = closedAt;
         this.mergedAt = mergedAt;
-        this.mergedCommitSha = mergedCommitSha;
+        this.mergeCommitSha = mergeCommitSha;
         this.assignee = assignee;
+        this.assignees = assignees;
         this.requestedReviewers = requestedReviewers;
-        this.headRef = head.getRef();
-        this.headSha = head.getSha();
-        this.baseRef = base.getRef();
-        this.baseSha = base.getSha();
-        this.authorAssociation = authorAssociation;
+        this.requestedTeams = requestedTeams;
+        this.labels = labels;
+        this.milestone = milestone;
         this.draft = draft;
+        this.commitsUrl = commitsUrl;
+        this.reviewCommentsUrl = reviewCommentsUrl;
+        this.reviewCommentUrl = reviewCommentUrl;
+        this.commentsUrl = commentsUrl;
+        this.statusesUrl = statusesUrl;
+        if (head != null) {
+            this.headRef = head.getRef();
+            this.headSha = head.getSha();
+        }
+        else {
+            this.headRef = "";
+            this.headSha = "";
+        }
+        if (base != null) {
+            this.baseRef = base.getRef();
+            this.baseSha = base.getSha();
+        }
+        else {
+            this.baseRef = "";
+            this.baseSha = "";
+        }
+        this.authorAssociation = authorAssociation;
+        this.autoMerge = autoMerge;
+        this.activeLockReason = activeLockReason;
     }
 
     public void setOwner(String owner)
@@ -184,7 +209,7 @@ public class Pull
                 packTimestamp(updatedAt),
                 packTimestamp(closedAt),
                 packTimestamp(mergedAt),
-                mergedCommitSha != null ? mergedCommitSha : "",
+                mergeCommitSha != null ? mergeCommitSha : "",
                 assignee != null ? assignee.getId() : 0,
                 assignee != null ? assignee.getLogin() : "",
                 requestedReviewerIds.build(),
@@ -244,7 +269,7 @@ public class Pull
         writeTimestamp(rowBuilder, updatedAt);
         writeTimestamp(rowBuilder, closedAt);
         writeTimestamp(rowBuilder, mergedAt);
-        writeString(rowBuilder, mergedCommitSha);
+        writeString(rowBuilder, mergeCommitSha);
         if (assignee == null) {
             rowBuilder.appendNull();
             rowBuilder.appendNull();

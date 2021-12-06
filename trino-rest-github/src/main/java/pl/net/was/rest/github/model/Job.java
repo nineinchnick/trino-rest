@@ -22,6 +22,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 
 import static io.trino.spi.type.BigintType.BIGINT;
+import static io.trino.spi.type.IntegerType.INTEGER;
 
 @SuppressWarnings("unused")
 public class Job
@@ -32,6 +33,7 @@ public class Job
     private final long id;
     private final long runId;
     private final String runUrl;
+    private final int runAttempt;
     private final String nodeId;
     private final String headSha;
     private final String url;
@@ -43,11 +45,17 @@ public class Job
     private final String name;
     private final List<Step> steps;
     private final String checkRunUrl;
+    private final List<String> labels;
+    private final long runnerId;
+    private final String runnerName;
+    private final long runnerGroupId;
+    private final String runnerGroupName;
 
     public Job(
             @JsonProperty("id") long id,
             @JsonProperty("run_id") long runId,
             @JsonProperty("run_url") String runUrl,
+            @JsonProperty("run_attempt") int runAttempt,
             @JsonProperty("node_id") String nodeId,
             @JsonProperty("head_sha") String headSha,
             @JsonProperty("url") String url,
@@ -58,11 +66,17 @@ public class Job
             @JsonProperty("completed_at") ZonedDateTime completedAt,
             @JsonProperty("name") String name,
             @JsonProperty("steps") List<Step> steps,
-            @JsonProperty("check_run_url") String checkRunUrl)
+            @JsonProperty("check_run_url") String checkRunUrl,
+            @JsonProperty("labels") List<String> labels,
+            @JsonProperty("runner_id") long runnerId,
+            @JsonProperty("runner_name") String runnerName,
+            @JsonProperty("runner_group_id") long runnerGroupId,
+            @JsonProperty("runner_group_name") String runnerGroupName)
     {
         this.id = id;
         this.runId = runId;
         this.runUrl = runUrl;
+        this.runAttempt = runAttempt;
         this.nodeId = nodeId;
         this.headSha = headSha;
         this.url = url;
@@ -74,8 +88,14 @@ public class Job
         this.name = name;
         steps.forEach(s -> s.setJobId(id));
         steps.forEach(s -> s.setRunId(runId));
+        steps.forEach(s -> s.setRunAttempt(runAttempt));
         this.steps = steps;
         this.checkRunUrl = checkRunUrl;
+        this.labels = labels;
+        this.runnerId = runnerId;
+        this.runnerName = runnerName;
+        this.runnerGroupId = runnerGroupId;
+        this.runnerGroupName = runnerGroupName;
     }
 
     public void setOwner(String owner)
@@ -97,6 +117,7 @@ public class Job
                 repo,
                 id,
                 runId,
+                runAttempt,
                 nodeId,
                 headSha,
                 status != null ? status : "",
@@ -113,6 +134,7 @@ public class Job
         writeString(rowBuilder, repo);
         BIGINT.writeLong(rowBuilder, id);
         BIGINT.writeLong(rowBuilder, runId);
+        INTEGER.writeLong(rowBuilder, runAttempt);
         writeString(rowBuilder, nodeId);
         writeString(rowBuilder, headSha);
         writeString(rowBuilder, status);

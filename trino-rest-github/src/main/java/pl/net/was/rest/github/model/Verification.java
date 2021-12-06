@@ -18,13 +18,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Verification
 {
-    private final Boolean verified;
+    private final boolean verified;
     private final String reason;
     private final String signature;
     private final String payload;
 
     public Verification(
-            @JsonProperty("verified") Boolean verified,
+            @JsonProperty("verified") boolean verified,
             @JsonProperty("reason") String reason,
             @JsonProperty("signature") String signature,
             @JsonProperty("payload") String payload)
@@ -35,7 +35,7 @@ public class Verification
         this.payload = payload;
     }
 
-    public Boolean getVerified()
+    public boolean getVerified()
     {
         return verified;
     }

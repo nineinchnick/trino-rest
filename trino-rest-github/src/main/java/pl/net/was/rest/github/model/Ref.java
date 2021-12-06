@@ -16,23 +16,33 @@ package pl.net.was.rest.github.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@SuppressWarnings("unused")
 public class Ref
 {
     private final String label;
     private final String url;
+    private final String htmlUrl;
     private final String ref;
     private final String sha;
+    private final Repository repo;
+    private final User user;
 
     public Ref(
             @JsonProperty("label") String label,
             @JsonProperty("url") String url,
+            @JsonProperty("html_url") String htmlUrl,
             @JsonProperty("ref") String ref,
-            @JsonProperty("sha") String sha)
+            @JsonProperty("sha") String sha,
+            @JsonProperty("repo") Repository repo,
+            @JsonProperty("user") User user)
     {
         this.label = label;
         this.url = url;
+        this.htmlUrl = htmlUrl;
         this.ref = ref;
         this.sha = sha;
+        this.repo = repo;
+        this.user = user;
     }
 
     public String getLabel()
@@ -45,6 +55,11 @@ public class Ref
         return url;
     }
 
+    public String getHtmlUrl()
+    {
+        return htmlUrl;
+    }
+
     public String getRef()
     {
         return ref;
@@ -53,5 +68,15 @@ public class Ref
     public String getSha()
     {
         return sha;
+    }
+
+    public Repository getRepo()
+    {
+        return repo;
+    }
+
+    public User getUser()
+    {
+        return user;
     }
 }

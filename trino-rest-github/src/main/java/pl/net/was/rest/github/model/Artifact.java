@@ -26,6 +26,7 @@ import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.BooleanType.BOOLEAN;
 import static io.trino.spi.type.IntegerType.INTEGER;
 
+@SuppressWarnings("unused")
 public class Artifact
         extends BaseBlockWriter
         implements Cloneable
@@ -34,6 +35,7 @@ public class Artifact
     private String repo;
     private long runId;
     private final long id;
+    private final String nodeId;
     private final long sizeInBytes;
     private final String name;
     private final String url;
@@ -51,6 +53,7 @@ public class Artifact
 
     public Artifact(
             @JsonProperty("id") long id,
+            @JsonProperty("node_id") String nodeId,
             @JsonProperty("size_in_bytes") long sizeInBytes,
             @JsonProperty("name") String name,
             @JsonProperty("url") String url,
@@ -62,6 +65,7 @@ public class Artifact
             @JsonProperty("updated_at") ZonedDateTime updatedAt)
     {
         this.id = id;
+        this.nodeId = nodeId;
         this.sizeInBytes = sizeInBytes;
         this.name = name;
         this.url = url;

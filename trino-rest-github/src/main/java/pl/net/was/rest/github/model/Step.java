@@ -22,6 +22,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 
 import static io.trino.spi.type.BigintType.BIGINT;
+import static io.trino.spi.type.IntegerType.INTEGER;
 import static io.trino.spi.type.VarcharType.VARCHAR;
 
 public class Step
@@ -30,6 +31,7 @@ public class Step
     private String owner;
     private String repo;
     private long runId;
+    private int runAttempt;
     private long jobId;
     private final String name;
     private final String status;
@@ -69,6 +71,11 @@ public class Step
         this.runId = runId;
     }
 
+    public void setRunAttempt(int runAttempt)
+    {
+        this.runAttempt = runAttempt;
+    }
+
     public void setJobId(long jobId)
     {
         this.jobId = jobId;
@@ -80,6 +87,7 @@ public class Step
                 owner,
                 repo,
                 runId,
+                runAttempt,
                 jobId,
                 name,
                 status != null ? status : "",
@@ -95,6 +103,7 @@ public class Step
         writeString(rowBuilder, owner);
         writeString(rowBuilder, repo);
         BIGINT.writeLong(rowBuilder, runId);
+        INTEGER.writeLong(rowBuilder, runAttempt);
         BIGINT.writeLong(rowBuilder, jobId);
         VARCHAR.writeString(rowBuilder, name);
         writeString(rowBuilder, status);

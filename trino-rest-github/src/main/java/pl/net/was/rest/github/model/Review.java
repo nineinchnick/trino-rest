@@ -29,37 +29,41 @@ public class Review
 {
     private String owner;
     private String repo;
-    private final long id;
     private long pullNumber;
+    private final long id;
+    private final String nodeId;
     private final User user;
     private final String body;
-    private final String state;
     private final String htmlUrl;
     private final String pullRequestUrl;
+    private final String authorAssociation;
+    private final String state;
     private final ZonedDateTime submittedAt;
     private final String commitId;
-    private final String authorAssociation;
 
     public Review(
             @JsonProperty("id") long id,
+            @JsonProperty("node_id") String nodeId,
             @JsonProperty("user") User user,
             @JsonProperty("body") String body,
-            @JsonProperty("state") String state,
             @JsonProperty("html_url") String htmlUrl,
             @JsonProperty("pull_request_url") String pullRequestUrl,
+            @JsonProperty("author_association") String authorAssociation,
+            @JsonProperty("_links") Object unusedLinks,
+            @JsonProperty("state") String state,
             @JsonProperty("submitted_at") ZonedDateTime submittedAt,
-            @JsonProperty("commit_id") String commitId,
-            @JsonProperty("author_association") String authorAssociation)
+            @JsonProperty("commit_id") String commitId)
     {
         this.id = id;
+        this.nodeId = nodeId;
         this.user = user;
         this.body = body;
-        this.state = state;
         this.htmlUrl = htmlUrl;
         this.pullRequestUrl = pullRequestUrl;
+        this.authorAssociation = authorAssociation;
+        this.state = state;
         this.submittedAt = submittedAt;
         this.commitId = commitId;
-        this.authorAssociation = authorAssociation;
     }
 
     public void setOwner(String owner)

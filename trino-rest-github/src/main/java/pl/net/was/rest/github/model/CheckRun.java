@@ -24,6 +24,7 @@ import java.util.List;
 import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.VarcharType.VARCHAR;
 
+@SuppressWarnings("unused")
 public class CheckRun
         extends BaseBlockWriter
 {
@@ -31,6 +32,7 @@ public class CheckRun
     private String repo;
     private String ref;
     private final long id;
+    private final String nodeId;
     private final String headSha;
     private final String externalId;
     private final String url;
@@ -44,9 +46,11 @@ public class CheckRun
     private final String name;
     private final Long checkSuiteId;
     private final App app;
+    private final List<Pull> pullRequests;
 
     public CheckRun(
             @JsonProperty("id") long id,
+            @JsonProperty("node_id") String nodeId,
             @JsonProperty("head_sha") String headSha,
             @JsonProperty("external_id") String externalId,
             @JsonProperty("url") String url,
@@ -59,9 +63,11 @@ public class CheckRun
             @JsonProperty("output") CheckOutput output,
             @JsonProperty("name") String name,
             @JsonProperty("check_suite") CheckSuite checkSuite,
-            @JsonProperty("app") App app)
+            @JsonProperty("app") App app,
+            @JsonProperty("pull_requests") List<Pull> pullRequests)
     {
         this.id = id;
+        this.nodeId = nodeId;
         this.headSha = headSha;
         this.externalId = externalId;
         this.url = url;
@@ -75,6 +81,7 @@ public class CheckRun
         this.name = name;
         this.checkSuiteId = checkSuite != null ? checkSuite.getId() : null;
         this.app = app;
+        this.pullRequests = pullRequests;
     }
 
     public void setOwner(String owner)

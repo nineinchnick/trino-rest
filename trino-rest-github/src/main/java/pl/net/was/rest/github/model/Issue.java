@@ -32,9 +32,14 @@ public class Issue
     private String owner;
     private String repo;
     private final long id;
+    private final String nodeId;
     private final String url;
+    private final String repositoryUrl;
+    private final String labelsUrl;
+    private final String commentsUrl;
     private final String eventsUrl;
     private final String htmlUrl;
+    private final String timelineUrl;
     private final long number;
     private final String state;
     private final String title;
@@ -42,20 +47,31 @@ public class Issue
     private final User user;
     private final List<Label> labels;
     private final User assignee;
+    private final List<User> assignees;
     private final Milestone milestone;
-    private final Boolean locked;
+    private final boolean locked;
     private final String activeLockReason;
     private final long comments;
+    private final Pull pullRequest;
     private final ZonedDateTime closedAt;
     private final ZonedDateTime createdAt;
     private final ZonedDateTime updatedAt;
+    private final User closedBy;
     private final String authorAssociation;
+    private final boolean draft;
+    private final Reactions reactions;
+    private final App performedViaGithubApp;
 
     public Issue(
             @JsonProperty("id") long id,
+            @JsonProperty("node_id") String nodeId,
             @JsonProperty("url") String url,
+            @JsonProperty("repository_url") String repositoryUrl,
+            @JsonProperty("labels_url") String labelsUrl,
+            @JsonProperty("comments_url") String commentsUrl,
             @JsonProperty("events_url") String eventsUrl,
             @JsonProperty("html_url") String htmlUrl,
+            @JsonProperty("timeline_url") String timelineUrl,
             @JsonProperty("number") long number,
             @JsonProperty("state") String state,
             @JsonProperty("title") String title,
@@ -63,19 +79,30 @@ public class Issue
             @JsonProperty("user") User user,
             @JsonProperty("labels") List<Label> labels,
             @JsonProperty("assignee") User assignee,
+            @JsonProperty("assignees") List<User> assignees,
             @JsonProperty("milestone") Milestone milestone,
-            @JsonProperty("locked") Boolean locked,
+            @JsonProperty("locked") boolean locked,
             @JsonProperty("active_lock_reason") String activeLockReason,
             @JsonProperty("comments") long comments,
+            @JsonProperty("pull_request") Pull pullRequest,
             @JsonProperty("closed_at") ZonedDateTime closedAt,
             @JsonProperty("created_at") ZonedDateTime createdAt,
             @JsonProperty("updated_at") ZonedDateTime updatedAt,
-            @JsonProperty("author_association") String authorAssociation)
+            @JsonProperty("closed_by") User closedBy,
+            @JsonProperty("author_association") String authorAssociation,
+            @JsonProperty("draft") boolean draft,
+            @JsonProperty("reactions") Reactions reactions,
+            @JsonProperty("performed_via_github_app") App performedViaGithubApp)
     {
         this.id = id;
+        this.nodeId = nodeId;
         this.url = url;
+        this.repositoryUrl = repositoryUrl;
+        this.labelsUrl = labelsUrl;
+        this.commentsUrl = commentsUrl;
         this.eventsUrl = eventsUrl;
         this.htmlUrl = htmlUrl;
+        this.timelineUrl = timelineUrl;
         this.number = number;
         this.state = state;
         this.title = title;
@@ -83,14 +110,20 @@ public class Issue
         this.user = user;
         this.labels = labels;
         this.assignee = assignee;
+        this.assignees = assignees;
         this.milestone = milestone;
         this.locked = locked;
         this.activeLockReason = activeLockReason;
         this.comments = comments;
+        this.pullRequest = pullRequest;
         this.closedAt = closedAt;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.closedBy = closedBy;
         this.authorAssociation = authorAssociation;
+        this.draft = draft;
+        this.reactions = reactions;
+        this.performedViaGithubApp = performedViaGithubApp;
     }
 
     public void setOwner(String owner)
@@ -136,7 +169,8 @@ public class Issue
                 packTimestamp(closedAt),
                 packTimestamp(createdAt),
                 packTimestamp(updatedAt),
-                authorAssociation);
+                authorAssociation,
+                draft);
     }
 
     @Override
@@ -195,5 +229,6 @@ public class Issue
         writeTimestamp(rowBuilder, createdAt);
         writeTimestamp(rowBuilder, updatedAt);
         writeString(rowBuilder, authorAssociation);
+        BOOLEAN.writeBoolean(rowBuilder, draft);
     }
 }

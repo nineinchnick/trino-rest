@@ -17,35 +17,47 @@ package pl.net.was.rest.github.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @SuppressWarnings("unused")
-public class Label
+public class Team
 {
     private final long id;
     private final String nodeId;
     private final String url;
+    private final String htmlUrl;
     private final String name;
+    private final String slug;
     private final String description;
-    private final String color;
-    private final String type;
-    private final boolean isDefault;
+    private final String privacy;
+    private final String permission;
+    private final String membersUrl;
+    private final String repositoriesUrl;
+    private final Team parent;
 
-    public Label(
+    public Team(
             @JsonProperty("id") long id,
             @JsonProperty("node_id") String nodeId,
             @JsonProperty("url") String url,
+            @JsonProperty("html_url") String htmlUrl,
             @JsonProperty("name") String name,
+            @JsonProperty("slug") String slug,
             @JsonProperty("description") String description,
-            @JsonProperty("color") String color,
-            @JsonProperty("type") String type,
-            @JsonProperty("default") boolean isDefault)
+            @JsonProperty("privacy") String privacy,
+            @JsonProperty("permission") String permission,
+            @JsonProperty("members_url") String membersUrl,
+            @JsonProperty("repositories_url") String repositoriesUrl,
+            @JsonProperty("parent") Team parent)
     {
         this.id = id;
         this.nodeId = nodeId;
         this.url = url;
+        this.htmlUrl = htmlUrl;
         this.name = name;
+        this.slug = slug;
         this.description = description;
-        this.color = color;
-        this.type = type;
-        this.isDefault = isDefault;
+        this.privacy = privacy;
+        this.permission = permission;
+        this.membersUrl = membersUrl;
+        this.repositoriesUrl = repositoriesUrl;
+        this.parent = parent;
     }
 
     public long getId()
@@ -63,9 +75,19 @@ public class Label
         return url;
     }
 
+    public String getHtmlUrl()
+    {
+        return htmlUrl;
+    }
+
     public String getName()
     {
         return name;
+    }
+
+    public String getSlug()
+    {
+        return slug;
     }
 
     public String getDescription()
@@ -73,18 +95,28 @@ public class Label
         return description;
     }
 
-    public String getColor()
+    public String getPrivacy()
     {
-        return color;
+        return privacy;
     }
 
-    public String getType()
+    public String getPermission()
     {
-        return type;
+        return permission;
     }
 
-    public boolean isDefault()
+    public String getMembersUrl()
     {
-        return isDefault;
+        return membersUrl;
+    }
+
+    public String getRepositoriesUrl()
+    {
+        return repositoriesUrl;
+    }
+
+    public Team getParent()
+    {
+        return parent;
     }
 }

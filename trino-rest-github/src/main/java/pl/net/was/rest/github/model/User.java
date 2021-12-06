@@ -24,13 +24,26 @@ import java.util.List;
 import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.BooleanType.BOOLEAN;
 
+@SuppressWarnings("unused")
 public class User
         extends BaseBlockWriter
 {
     private final String login;
     private final long id;
+    private final String nodeId;
     private final String avatarUrl;
     private final String gravatarId;
+    private final String url;
+    private final String htmlUrl;
+    private final String followersUrl;
+    private final String followingUrl;
+    private final String gistsUrl;
+    private final String starredUrl;
+    private final String subscriptionsUrl;
+    private final String organizationsUrl;
+    private final String reposUrl;
+    private final String eventsUrl;
+    private final String receivedEventsUrl;
     private final String type;
     private final boolean siteAdmin;
     private final String name;
@@ -51,8 +64,20 @@ public class User
     public User(
             @JsonProperty("login") String login,
             @JsonProperty("id") long id,
+            @JsonProperty("node_id") String nodeId,
             @JsonProperty("avatar_url") String avatarUrl,
             @JsonProperty("gravatar_id") String gravatarId,
+            @JsonProperty("url") String url,
+            @JsonProperty("html_url") String htmlUrl,
+            @JsonProperty("followers_url") String followersUrl,
+            @JsonProperty("following_url") String followingUrl,
+            @JsonProperty("gists_url") String gistsUrl,
+            @JsonProperty("starred_url") String starredUrl,
+            @JsonProperty("subscriptions_url") String subscriptionsUrl,
+            @JsonProperty("organizations_url") String organizationsUrl,
+            @JsonProperty("repos_url") String reposUrl,
+            @JsonProperty("events_url") String eventsUrl,
+            @JsonProperty("received_events_url") String receivedEventsUrl,
             @JsonProperty("type") String type,
             @JsonProperty("site_admin") boolean siteAdmin,
             @JsonProperty("name") String name,
@@ -72,8 +97,20 @@ public class User
     {
         this.login = login;
         this.id = id;
+        this.nodeId = nodeId;
         this.avatarUrl = avatarUrl;
         this.gravatarId = gravatarId;
+        this.url = url;
+        this.htmlUrl = htmlUrl;
+        this.followersUrl = followersUrl;
+        this.followingUrl = followingUrl;
+        this.gistsUrl = gistsUrl;
+        this.starredUrl = starredUrl;
+        this.subscriptionsUrl = subscriptionsUrl;
+        this.organizationsUrl = organizationsUrl;
+        this.reposUrl = reposUrl;
+        this.eventsUrl = eventsUrl;
+        this.receivedEventsUrl = receivedEventsUrl;
         this.type = type;
         this.siteAdmin = siteAdmin;
         this.name = name;

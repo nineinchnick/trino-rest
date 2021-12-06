@@ -17,33 +17,44 @@ package pl.net.was.rest.github.model;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 
+import java.time.ZonedDateTime;
 import java.util.List;
 
+@SuppressWarnings("unused")
 public class Commit
 {
+    private final String id;
+    private final String treeId;
     private final String url;
     private final Identity author;
     private final Identity committer;
     private final String message;
+    private final ZonedDateTime timestamp;
     private final Ref tree;
-    private final long commentsCount;
+    private final long commentCount;
     private final Verification verification;
 
     public Commit(
+            @JsonProperty("id") String id,
+            @JsonProperty("tree_id") String treeId,
             @JsonProperty("url") String url,
             @JsonProperty("author") Identity author,
             @JsonProperty("committer") Identity committer,
             @JsonProperty("message") String message,
+            @JsonProperty("timestamp") ZonedDateTime timestamp,
             @JsonProperty("tree") Ref tree,
-            @JsonProperty("comments_count") long commentsCount,
+            @JsonProperty("comment_count") long commentCount,
             @JsonProperty("verification") Verification verification)
     {
+        this.id = id;
+        this.treeId = treeId;
         this.url = url;
         this.author = author;
         this.committer = committer;
         this.message = message;
+        this.timestamp = timestamp;
         this.tree = tree;
-        this.commentsCount = commentsCount;
+        this.commentCount = commentCount;
         this.verification = verification;
     }
 
@@ -58,7 +69,7 @@ public class Commit
                 message,
                 tree.getUrl(),
                 tree.getSha(),
-                commentsCount,
+                commentCount,
                 verification.getVerified(),
                 verification.getReason());
     }
@@ -88,9 +99,9 @@ public class Commit
         return tree;
     }
 
-    public long getCommentsCount()
+    public long getCommentCount()
     {
-        return commentsCount;
+        return commentCount;
     }
 
     public Verification getVerification()
