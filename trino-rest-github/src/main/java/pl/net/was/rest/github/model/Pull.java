@@ -14,7 +14,6 @@
 
 package pl.net.was.rest.github.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.trino.spi.block.BlockBuilder;
@@ -26,7 +25,7 @@ import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.BooleanType.BOOLEAN;
 import static io.trino.spi.type.VarcharType.VARCHAR;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
+@SuppressWarnings("unused")
 public class Pull
         extends BaseBlockWriter
 {

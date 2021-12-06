@@ -14,7 +14,6 @@
 
 package pl.net.was.rest.github.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.trino.spi.block.BlockBuilder;
@@ -24,7 +23,7 @@ import java.util.List;
 
 import static io.trino.spi.type.BigintType.BIGINT;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
+@SuppressWarnings("unused")
 public class IssueComment
         extends BaseBlockWriter
 {

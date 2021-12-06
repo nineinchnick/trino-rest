@@ -54,7 +54,7 @@ public class RestColumnHandle
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (!(o instanceof RestColumnHandle)) {
             return false;
         }
         RestColumnHandle that = (RestColumnHandle) o;

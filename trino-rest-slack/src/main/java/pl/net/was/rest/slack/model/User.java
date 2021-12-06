@@ -15,7 +15,6 @@
 package pl.net.was.rest.slack.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.trino.spi.type.DateTimeEncoding;
@@ -25,7 +24,6 @@ import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class User
 {
     private final String id;

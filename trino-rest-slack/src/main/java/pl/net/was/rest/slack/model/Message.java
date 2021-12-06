@@ -14,7 +14,6 @@
 
 package pl.net.was.rest.slack.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.trino.spi.block.BlockBuilder;
@@ -26,7 +25,6 @@ import java.util.List;
 import static io.trino.spi.type.IntegerType.INTEGER;
 import static io.trino.spi.type.VarcharType.VARCHAR;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class Message
 {
     private final String type;

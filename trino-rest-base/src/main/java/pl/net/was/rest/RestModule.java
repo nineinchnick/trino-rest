@@ -31,6 +31,7 @@ import retrofit2.converter.jackson.JacksonConverterFactory;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES;
 import static io.airlift.configuration.ConfigBinder.configBinder;
 import static java.util.Objects.requireNonNull;
 
@@ -85,6 +86,8 @@ public class RestModule
                 .client(clientBuilder.build())
                 .addConverterFactory(JacksonConverterFactory.create(
                         new ObjectMapper()
+                                // turn this on and run tests to detect new/undocumented API fields
+                                .configure(FAIL_ON_UNKNOWN_PROPERTIES, false)
                                 .registerModule(new Jdk8Module())
                                 .registerModule(new JavaTimeModule())))
                 .build()

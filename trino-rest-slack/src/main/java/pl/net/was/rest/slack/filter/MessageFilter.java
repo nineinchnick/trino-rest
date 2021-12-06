@@ -23,6 +23,7 @@ import java.util.Map;
 public class MessageFilter
         implements FilterApplier
 {
+    @Override
     public Map<String, FilterType> getSupportedFilters()
     {
         return ImmutableMap.of(

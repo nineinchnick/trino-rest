@@ -14,14 +14,12 @@
 
 package pl.net.was.rest.github.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class JobsList
         implements Envelope<Job>
 {
@@ -37,11 +35,13 @@ public class JobsList
         this.jobs = jobs;
     }
 
+    @Override
     public long getTotalCount()
     {
         return totalCount;
     }
 
+    @Override
     public List<Job> getItems()
     {
         return jobs;

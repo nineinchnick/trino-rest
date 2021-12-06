@@ -24,16 +24,19 @@ import io.trino.spi.connector.ConnectorTransactionHandle;
 public class RestHandleResolver
         implements ConnectorHandleResolver
 {
+    @Override
     public Class<? extends ConnectorTableHandle> getTableHandleClass()
     {
         return RestTableHandle.class;
     }
 
+    @Override
     public Class<? extends ColumnHandle> getColumnHandleClass()
     {
         return RestColumnHandle.class;
     }
 
+    @Override
     public Class<? extends ConnectorSplit> getSplitClass()
     {
         return RestConnectorSplit.class;

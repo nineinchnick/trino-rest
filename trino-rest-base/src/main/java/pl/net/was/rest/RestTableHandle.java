@@ -52,6 +52,7 @@ public class RestTableHandle
         this.sortOrder = sortOrder;
     }
 
+    @Override
     public String toString()
     {
         return schemaTableName.getTableName();

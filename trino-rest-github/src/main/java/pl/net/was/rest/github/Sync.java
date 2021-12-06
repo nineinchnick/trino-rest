@@ -83,7 +83,7 @@ public class Sync
                 "CHECK_ARTIFACTS_DUPLICATES", "false");
         for (String name : names) {
             String value = env.getOrDefault(name, defaults.getOrDefault(name, ""));
-            if (!value.isEmpty() && (name.equals("TRINO_PASSWORD"))) {
+            if (!value.isEmpty() && name.equals("TRINO_PASSWORD")) {
                 value = "***";
             }
             log.info(format("%s=%s", name, value));

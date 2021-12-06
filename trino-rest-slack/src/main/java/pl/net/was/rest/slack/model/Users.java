@@ -14,14 +14,12 @@
 
 package pl.net.was.rest.slack.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class Users
         extends SlackResponse
         implements Envelope<User>
@@ -39,6 +37,7 @@ public class Users
         this.items = users;
     }
 
+    @Override
     public List<User> getItems()
     {
         return items;

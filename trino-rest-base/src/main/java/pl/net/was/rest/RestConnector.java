@@ -25,7 +25,6 @@ import io.trino.spi.transaction.IsolationLevel;
 import javax.inject.Inject;
 
 import static java.util.Objects.requireNonNull;
-import static pl.net.was.rest.RestTransactionHandle.INSTANCE;
 
 public class RestConnector
         implements Connector
@@ -34,27 +33,24 @@ public class RestConnector
     private final RestMetadata metadata;
     private final RestSplitManager splitManager;
     private final RestRecordSetProvider recordSetProvider;
-    private final Rest rest;
 
     @Inject
     public RestConnector(
             LifeCycleManager lifeCycleManager,
             RestMetadata metadata,
             RestSplitManager splitManager,
-            RestRecordSetProvider recordSetProvider,
-            Rest rest)
+            RestRecordSetProvider recordSetProvider)
     {
         this.lifeCycleManager = requireNonNull(lifeCycleManager, "lifeCycleManager is null");
         this.metadata = requireNonNull(metadata, "metadata is null");
         this.splitManager = requireNonNull(splitManager, "splitManager is null");
         this.recordSetProvider = requireNonNull(recordSetProvider, "recordSetProvider is null");
-        this.rest = rest;
     }
 
     @Override
     public ConnectorTransactionHandle beginTransaction(IsolationLevel isolationLevel, boolean readOnly)
     {
-        return INSTANCE;
+        return RestTransactionHandle.INSTANCE;
     }
 
     @Override

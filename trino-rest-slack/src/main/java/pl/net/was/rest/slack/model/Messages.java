@@ -34,6 +34,7 @@ public class Messages
         this.items = messages;
     }
 
+    @Override
     public List<Message> getItems()
     {
         return items;

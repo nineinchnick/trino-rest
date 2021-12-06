@@ -14,12 +14,10 @@
 
 package pl.net.was.rest.github.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.ZonedDateTime;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class Identity
 {
     private final String name;

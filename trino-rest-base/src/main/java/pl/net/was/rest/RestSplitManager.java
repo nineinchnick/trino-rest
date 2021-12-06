@@ -93,6 +93,7 @@ public class RestSplitManager
         }
 
         @Override
+        @SuppressWarnings("FutureReturnValueIgnored")
         public void close()
         {
             if (!dynamicFilterFuture.cancel(true)) {

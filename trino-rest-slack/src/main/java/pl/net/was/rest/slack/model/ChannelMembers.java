@@ -34,6 +34,7 @@ public class ChannelMembers
         this.items = members;
     }
 
+    @Override
     public List<String> getItems()
     {
         return items;

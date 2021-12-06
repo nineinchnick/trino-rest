@@ -34,6 +34,7 @@ public class Channels
         this.items = channels;
     }
 
+    @Override
     public List<Channel> getItems()
     {
         return items;

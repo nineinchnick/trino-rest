@@ -30,8 +30,10 @@ import static io.trino.spi.type.VarcharType.VARCHAR;
 abstract class BaseBlockWriter
         implements BlockWriter
 {
+    @Override
     public abstract void writeTo(BlockBuilder rowBuilder);
 
+    @SuppressWarnings("JavaLocalTimeGetNano")
     protected static long packTimestamp(ZonedDateTime timestamp)
     {
         if (timestamp == null) {

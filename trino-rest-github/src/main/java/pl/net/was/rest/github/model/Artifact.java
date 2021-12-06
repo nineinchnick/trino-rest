@@ -14,7 +14,6 @@
 
 package pl.net.was.rest.github.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slices;
@@ -27,7 +26,6 @@ import static io.trino.spi.type.BigintType.BIGINT;
 import static io.trino.spi.type.BooleanType.BOOLEAN;
 import static io.trino.spi.type.IntegerType.INTEGER;
 
-@JsonIgnoreProperties(ignoreUnknown = true)
 public class Artifact
         extends BaseBlockWriter
         implements Cloneable

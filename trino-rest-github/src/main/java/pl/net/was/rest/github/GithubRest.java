@@ -1057,6 +1057,7 @@ public class GithubRest
             .build();
 
     @Inject
+    @SuppressWarnings("StaticAssignmentInConstructor")
     public GithubRest(RestConfig config)
     {
         requireNonNull(config, "config is null");
@@ -2237,6 +2238,7 @@ public class GithubRest
                 constraint.getSummary());
     }
 
+    @Override
     public ConnectorSplitSource getSplitSource(
             NodeManager nodeManager,
             ConnectorTableHandle handle,
