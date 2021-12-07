@@ -29,12 +29,7 @@ The following configuration options are recognied by this connector:
 
 # Build
 
-Run all the unit test classes.
-```
-mvn test
-```
-
-Creates a deployable jar file
+Build, test and create a deployable zip file:
 ```
 mvn clean package
 ```
@@ -46,17 +41,17 @@ An example command to run the Trino server with the git plugin and catalog enabl
 ```bash
 src=$(git rev-parse --show-toplevel)
 docker run \
-  -v $src/trino-rest-github/target/trino-rest-github-0.4-SNAPSHOT:/usr/lib/trino/plugin/github \
+  -v $src/trino-rest-github/target/trino-rest-github-0.40-SNAPSHOT:/usr/lib/trino/plugin/github \
   -v $src/catalog:/etc/trino/catalog \
   -p 8080:8080 \
   --name trino \
   -d \
-  trinodb/trino:358
+  trinodb/trino:365
 ```
 
 Connect to that server using:
 ```bash
-docker run -it --rm --link trino trinodb/trino:358 trino --server trino:8080 --catalog github --schema default
+docker run -it --rm --link trino trinodb/trino:365 trino --server trino:8080 --catalog github --schema default
 ```
 
 # Authentication and rate limits
@@ -74,7 +69,7 @@ Such splits can be distributed evenly among all available nodes and/or threads, 
 For other tables, a configurable minimum number of splits will be created (defaults to 1), where each fetches pages until no more are available.
 
 > Note: no rate limits are being accounted for when generating splits.
-  
+
 # Cache
 
 Caching is enabled in the HTTP client used. API responses are cached in a temporary directory, and max cache size is 50Mb.
@@ -89,7 +84,7 @@ that does this in an incremental fashion, that is it can be run in regular inter
 
 To run the `Sync` utility in `trino-rest-github`:
 ```bash
-java -cp "trino-rest-github/target/trino-rest-github-0.4-SNAPSHOT/*" pl.net.was.rest.github.Sync
+java -cp "trino-rest-github/target/trino-rest-github-0.40-SNAPSHOT/*" pl.net.was.rest.github.Sync
 ```
 
 Check how much data the `Sync` collected by running a query like:
