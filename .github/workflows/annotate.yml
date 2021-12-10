@@ -8,9 +8,8 @@ on:
 
 jobs:
   annotate:
+    if: github.repository_owner == 'nineinchnick' && contains(['push', 'pull_request'], github.event.workflow_run.event)
     runs-on: ubuntu-latest
-    if: >
-      ${{ github.event.workflow_run.event == 'pull_request' }}
     steps:
       - name: 'Download artifact'
         uses: actions/github-script@v5
@@ -36,7 +35,7 @@ jobs:
               fs.writeFileSync('${{github.workspace}}/' + artifact.name + '.zip', Buffer.from(download.data));
             }
       - run: |
-          set -x
+          set -xeuo pipefail
           pwd
           ls
           for archive in *.zip; do
@@ -44,7 +43,9 @@ jobs:
             mkdir "$name"
             (cd "$name" && unzip ../"$archive")
           done
+      # Process unit and integration test reports
       - uses: scacap/action-surefire-report@v1
         with:
+          # this workflow should never fail, as it is not a quality gateway
           fail_if_no_tests: false
           commit: ${{github.event.workflow_run.head_sha}}
