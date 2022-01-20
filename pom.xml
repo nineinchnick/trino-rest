@@ -30,7 +30,7 @@
     <parent>
         <groupId>io.airlift</groupId>
         <artifactId>airbase</artifactId>
-        <version>116</version>
+        <version>119</version>
     </parent>
 
     <licenses>
@@ -58,8 +58,8 @@
         <air.check.skip-checkstyle>false</air.check.skip-checkstyle>
 
         <!-- must be in sync with Dockerfile -->
-        <dep.trino.version>367</dep.trino.version>
-        <dep.airlift.version>212</dep.airlift.version>
+        <dep.trino.version>368</dep.trino.version>
+        <dep.airlift.version>213</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.errorprone.version>2.10.0</dep.errorprone.version>
         <dep.jackson.version>2.13.1</dep.jackson.version>
@@ -91,7 +91,7 @@
             <dependency>
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-annotations</artifactId>
-                <version>4.5.2</version>
+                <version>4.5.3</version>
             </dependency>
             <dependency>
                 <groupId>javax.xml.bind</groupId>
@@ -221,7 +221,7 @@
             </plugin>
             <plugin>
                 <artifactId>maven-release-plugin</artifactId>
-                <version>3.0.0-M4</version>
+                <version>3.0.0-M5</version>
                 <configuration>
                     <scmCommentPrefix>[ci skip]</scmCommentPrefix>
                     <tagNameFormat>v@{project.version}</tagNameFormat>
@@ -231,7 +231,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-scm-plugin</artifactId>
-                <version>1.12.0</version>
+                <version>1.12.2</version>
                 <configuration>
                     <pushChanges>true</pushChanges>
                 </configuration>
