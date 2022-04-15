@@ -18,7 +18,7 @@
 
     <groupId>pl.net.was</groupId>
     <artifactId>trino-rest</artifactId>
-    <version>0.63-SNAPSHOT</version>
+    <version>0.64-SNAPSHOT</version>
     <description>Trino RESTful Connectors</description>
     <packaging>pom</packaging>
 
@@ -58,7 +58,7 @@
         <air.check.skip-checkstyle>false</air.check.skip-checkstyle>
 
         <!-- must be in sync with Dockerfile -->
-        <dep.trino.version>376</dep.trino.version>
+        <dep.trino.version>377</dep.trino.version>
         <dep.airlift.version>214</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.errorprone.version>2.11.0</dep.errorprone.version>
