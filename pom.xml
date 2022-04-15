@@ -18,7 +18,7 @@
 
     <groupId>pl.net.was</groupId>
     <artifactId>trino-rest</artifactId>
-    <version>0.63-SNAPSHOT</version>
+    <version>0.64-SNAPSHOT</version>
     <description>Trino RESTful Connectors</description>
     <packaging>pom</packaging>
 
@@ -81,7 +81,7 @@
             <dependency>
                 <groupId>org.checkerframework</groupId>
                 <artifactId>checker-qual</artifactId>
-                <version>3.21.3</version>
+                <version>3.21.4</version>
             </dependency>
             <dependency>
                 <groupId>org.osgi</groupId>
