@@ -142,6 +142,7 @@ public class Sync
         availableTables.put("check_suites", Sync::syncCheckSuites);
         availableTables.put("check_runs", Sync::syncCheckRuns);
         availableTables.put("check_run_annotations", Sync::syncCheckRunAnnotations);
+        availableTables.put("members", Sync::syncMembers);
 
         try (Connection conn = DriverManager.getConnection(url, username, password)) {
             options.conn = conn;
@@ -1438,6 +1439,47 @@ public class Sync
                 int rows = retryExecute(insertStatement);
                 log.info(format("Inserted %d rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
             }
+        }
+        catch (Exception e) {
+            log.severe(e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private static void syncMembers(Options options)
+    {
+        Connection conn = options.conn;
+        String destSchema = options.destSchema;
+        String srcSchema = options.srcSchema;
+        try {
+            conn.createStatement().executeUpdate(
+                    "CREATE TABLE IF NOT EXISTS " + destSchema + ".timestamped_members AS SELECT *, cast(current_timestamp as timestamp(3)) AS joined_at, cast(current_timestamp as timestamp(3)) AS removed_at FROM " + srcSchema + ".members WITH NO DATA");
+            String query = "INSERT INTO " + destSchema + ".timestamped_members" +
+                    " SELECT" +
+                    "  coalesce(src.org, dst.org)" +
+                    "  , coalesce(src.team_slug, dst.team_slug)" +
+                    "  , coalesce(src.login, dst.login)" +
+                    "  , coalesce(src.id, dst.id)" +
+                    "  , coalesce(src.avatar_url, dst.avatar_url)" +
+                    "  , coalesce(src.gravatar_id, dst.gravatar_id)" +
+                    "  , coalesce(src.type, dst.type)" +
+                    "  , coalesce(src.site_admin, dst.site_admin)" +
+                    "  , coalesce(dst.joined_at, cast(current_timestamp as timestamp(3))) AS joined_at" +
+                    "  , if(src.id IS NULL, cast(current_timestamp as timestamp(3))) AS removed_at" +
+                    " FROM (" +
+                    "  SELECT org, team_slug, login, id, avatar_url, gravatar_id, type, site_admin, max(joined_at) AS joined_at, max(removed_at) AS removed_at " +
+                    "  FROM " + destSchema + ".timestamped_members " +
+                    "  GROUP BY 1, 2, 3, 4, 5, 6, 7, 8 " +
+                    "  HAVING max(removed_at) IS NULL" +
+                    ") dst" +
+                    " FULL OUTER JOIN (SELECT * FROM " + srcSchema + " .members WHERE org = ?) src ON (dst.org, coalesce(dst.team_slug, ''), dst.id) = (src.org, coalesce(src.team_slug, ''), src.id)" +
+                    " WHERE dst.id IS NULL OR src.id IS NULL";
+            PreparedStatement insertStatement = conn.prepareStatement(query);
+            insertStatement.setString(1, options.owner);
+
+            long startTime = System.currentTimeMillis();
+            int rows = retryExecute(insertStatement);
+            log.info(format("Inserted %d rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
         }
         catch (Exception e) {
             log.severe(e.getMessage());
