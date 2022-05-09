@@ -14,7 +14,7 @@ Not all API endpoints are mapped yet, here's a list of the available tables:
 * `users` - [Users](https://docs.github.com/en/rest/reference/users)
 * `repos` - [Repositories](https://docs.github.com/en/rest/reference/repos)
 * `issues` and `issue_comments` - [Issues](https://docs.github.com/en/rest/reference/issues)
-* `pulls`, `pull_commits`, `reviews`, `review_comments` - [Pull requests](https://docs.github.com/en/rest/reference/pulls)
+* `pulls`, `pull_commits`, `pull_stats`, `reviews`, `review_comments` - [Pull requests](https://docs.github.com/en/rest/reference/pulls)
 * `workflows`, `runs`, `jobs`, `steps`, `artifacts`, `runners` - [Actions](https://docs.github.com/en/rest/reference/actions)
 
 # Configuration

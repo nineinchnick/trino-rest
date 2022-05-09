@@ -27,6 +27,7 @@ public enum GithubTable
     COMMITS("commits"),
     PULLS("pulls"),
     PULL_COMMITS("pull_commits"),
+    PULL_STATS("pull_stats"),
     REVIEWS("reviews"),
     REVIEW_COMMENTS("review_comments"),
     ISSUES("issues"),

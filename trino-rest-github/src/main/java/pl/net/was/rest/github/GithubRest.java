@@ -74,6 +74,7 @@ import pl.net.was.rest.github.filter.MemberFilter;
 import pl.net.was.rest.github.filter.OrgFilter;
 import pl.net.was.rest.github.filter.PullCommitFilter;
 import pl.net.was.rest.github.filter.PullFilter;
+import pl.net.was.rest.github.filter.PullStatisticsFilter;
 import pl.net.was.rest.github.filter.RepoCommitFilter;
 import pl.net.was.rest.github.filter.RepoFilter;
 import pl.net.was.rest.github.filter.ReviewCommentFilter;
@@ -354,6 +355,16 @@ public class GithubRest
                     new ColumnMetadata("committer_id", BIGINT),
                     new ColumnMetadata("committer_login", VARCHAR),
                     new ColumnMetadata("parent_shas", new ArrayType(VARCHAR))))
+            .put(GithubTable.PULL_STATS, ImmutableList.of(
+                    new ColumnMetadata("owner", VARCHAR),
+                    new ColumnMetadata("repo", VARCHAR),
+                    new ColumnMetadata("pull_number", BIGINT),
+                    new ColumnMetadata("comments", BIGINT),
+                    new ColumnMetadata("review_comments", BIGINT),
+                    new ColumnMetadata("commits", BIGINT),
+                    new ColumnMetadata("additions", BIGINT),
+                    new ColumnMetadata("deletions", BIGINT),
+                    new ColumnMetadata("changed_files", BIGINT)))
             .put(GithubTable.REVIEWS, ImmutableList.of(
                     new ColumnMetadata("owner", VARCHAR),
                     new ColumnMetadata("repo", VARCHAR),
@@ -665,6 +676,7 @@ public class GithubRest
             .put(GithubTable.COMMITS, this::getRepoCommits)
             .put(GithubTable.PULLS, this::getPulls)
             .put(GithubTable.PULL_COMMITS, this::getPullCommits)
+            .put(GithubTable.PULL_STATS, this::getPullStats)
             .put(GithubTable.REVIEWS, this::getReviews)
             .put(GithubTable.REVIEW_COMMENTS, this::getReviewComments)
             .put(GithubTable.ISSUES, this::getIssues)
@@ -968,6 +980,18 @@ public class GithubRest
             "parent_shas array(varchar)" +
             "))";
 
+    public static final String PULL_STATS_ROW_TYPE = "row(" +
+            "owner varchar, " +
+            "repo varchar, " +
+            "pull_number bigint, " +
+            "comments bigint, " +
+            "review_comments bigint, " +
+            "commits bigint, " +
+            "additions bigint, " +
+            "deletions bigint, " +
+            "changed_files bigint" +
+            ")";
+
     public static final String REVIEWS_TABLE_TYPE = "array(row(" +
             "owner varchar, " +
             "repo varchar, " +
@@ -1253,6 +1277,7 @@ public class GithubRest
             .put(GithubTable.COMMITS, new RepoCommitFilter())
             .put(GithubTable.PULLS, new PullFilter())
             .put(GithubTable.PULL_COMMITS, new PullCommitFilter())
+            .put(GithubTable.PULL_STATS, new PullStatisticsFilter())
             .put(GithubTable.REVIEWS, new ReviewFilter())
             .put(GithubTable.REVIEW_COMMENTS, new ReviewCommentFilter())
             .put(GithubTable.ISSUES, new IssueFilter())
@@ -1550,6 +1575,31 @@ public class GithubRest
                 table.getOffset(),
                 table.getLimit(),
                 table.getPageIncrement());
+    }
+
+    private Iterable<List<?>> getPullStats(RestTableHandle table)
+    {
+        if (table.getLimit() == 0) {
+            return List.of();
+        }
+        GithubTable tableName = GithubTable.valueOf(table);
+        TupleDomain<ColumnHandle> constraint = table.getConstraint();
+        Map<String, ColumnHandle> columns = columnHandles.get(tableName);
+        FilterApplier filter = filterAppliers.get(tableName);
+
+        String owner = (String) filter.getFilter((RestColumnHandle) columns.get("owner"), constraint);
+        String repo = (String) filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
+        requirePredicate(owner, "pull_stats.owner");
+        requirePredicate(repo, "pull_stats.repo");
+        long pullNumber = (long) filter.getFilter((RestColumnHandle) columns.get("pull_number"), constraint);
+        requirePredicate(pullNumber, "pull_stats.pull_number");
+
+        return getRow(() -> service.getPull("Bearer " + token, owner, repo, pullNumber), item -> {
+            item.setOwner(owner);
+            item.setRepo(repo);
+            item.setPullNumber(pullNumber);
+            return item.toRow();
+        });
     }
 
     private void requirePredicate(Object value, String name)

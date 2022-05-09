@@ -30,6 +30,7 @@ import pl.net.was.rest.github.function.OrgRepos;
 import pl.net.was.rest.github.function.OrgRunners;
 import pl.net.was.rest.github.function.Orgs;
 import pl.net.was.rest.github.function.PullCommits;
+import pl.net.was.rest.github.function.PullStats;
 import pl.net.was.rest.github.function.Pulls;
 import pl.net.was.rest.github.function.RepoCommits;
 import pl.net.was.rest.github.function.Repos;
@@ -75,6 +76,7 @@ public class GithubPlugin
                 .add(RepoCommits.class)
                 .add(Pulls.class)
                 .add(PullCommits.class)
+                .add(PullStats.class)
                 .add(Reviews.class)
                 .add(ReviewComments.class)
                 .add(IssueComments.class)

@@ -16,6 +16,7 @@ package pl.net.was.rest.github.service;
 
 import pl.net.was.rest.github.model.Pull;
 import pl.net.was.rest.github.model.PullCommit;
+import pl.net.was.rest.github.model.PullStatistics;
 import pl.net.was.rest.github.model.Review;
 import pl.net.was.rest.github.model.ReviewComment;
 import retrofit2.Call;
@@ -50,6 +51,14 @@ public interface PullService
             @Path("pull_number") long pullNumber,
             @Query("per_page") int perPage,
             @Query("page") int page);
+
+    @Headers("accept: application/vnd.github.v3+json")
+    @GET("/repos/{owner}/{repo}/pulls/{pull_number}")
+    Call<PullStatistics> getPull(
+            @Header("Authorization") String auth,
+            @Path("owner") String owner,
+            @Path("repo") String repo,
+            @Path("pull_number") long pullNumber);
 
     @Headers("accept: application/vnd.github.v3+json")
     @GET("/repos/{owner}/{repo}/pulls/{pull_number}/reviews")
