@@ -249,6 +249,24 @@ CREATE TABLE pull_commits (
 WITH (
    format = 'ORC'
 );
+CREATE TABLE pull_stats (
+   owner varchar,
+   repo varchar,
+   pull_number bigint,
+   comments bigint,
+   review_comments bigint,
+   commits bigint,
+   additions bigint,
+   deletions bigint,
+   changed_files bigint,
+   created_at timestamp(3),
+   updated_at timestamp(3),
+   closed_at timestamp(3),
+   merged_at timestamp(3)
+)
+WITH (
+   format = 'ORC'
+);
 CREATE TABLE pulls (
    owner varchar,
    repo varchar,
