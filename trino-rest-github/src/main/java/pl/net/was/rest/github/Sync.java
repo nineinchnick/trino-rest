@@ -671,11 +671,11 @@ public class Sync
             conn.createStatement().executeUpdate(
                     "CREATE TABLE IF NOT EXISTS " + destSchema + ".pull_stats AS SELECT * FROM " + srcSchema + ".pull_stats WITH NO DATA");
             // consider adding some indexes:
-            // CREATE INDEX ON pulls(owner, repo, number);
+            // CREATE INDEX ON pull_stats(owner, repo, pull_number);
             // note that the first one is NOT a primary key, so updated records can be inserted
             // and then removed as duplicates by running this in the target database (not supported in Trino):
-            // DELETE FROM pulls a USING pulls b WHERE a.updated_at < b.updated_at AND a.id = b.id;
-            // or use the unique_pulls view (from `trino-rest-github/sql/views.sql`) that ignores duplicates
+            // DELETE FROM pulls a USING pull_stats b WHERE a.updated_at < b.updated_at AND a.id = b.id;
+            // or use the unique_pull_stats view (from `trino-rest-github/sql/views.sql`) that ignores duplicates
 
             // there's no "since" filter, but we can sort by updated_at, so keep inserting records where this is greater than max
             PreparedStatement lastUpdatedStatement = conn.prepareStatement(
