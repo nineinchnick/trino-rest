@@ -662,6 +662,49 @@ public class Sync
         }
     }
 
+    private static void syncPullStats(Options options)
+    {
+        Connection conn = options.conn;
+        String destSchema = options.destSchema;
+        String srcSchema = options.srcSchema;
+        try {
+            conn.createStatement().executeUpdate(
+                    "CREATE TABLE IF NOT EXISTS " + destSchema + ".pull_stats AS SELECT * FROM " + srcSchema + ".pull_stats WITH NO DATA");
+            // consider adding some indexes:
+            // CREATE INDEX ON pulls(owner, repo, number);
+            // note that the first one is NOT a primary key, so updated records can be inserted
+            // and then removed as duplicates by running this in the target database (not supported in Trino):
+            // DELETE FROM pulls a USING pulls b WHERE a.updated_at < b.updated_at AND a.id = b.id;
+            // or use the unique_pulls view (from `trino-rest-github/sql/views.sql`) that ignores duplicates
+
+            // there's no "since" filter, but we can sort by updated_at, so keep inserting records where this is greater than max
+            PreparedStatement lastUpdatedStatement = conn.prepareStatement(
+                    "SELECT COALESCE(MAX(updated_at), TIMESTAMP '0000-01-01') AS latest FROM " + destSchema + ".pull_stats WHERE owner = ? AND repo = ?");
+            lastUpdatedStatement.setString(1, options.owner);
+            lastUpdatedStatement.setString(2, options.repo);
+            ResultSet result = lastUpdatedStatement.executeQuery();
+            result.next();
+            String lastUpdated = result.getString(1);
+
+            PreparedStatement statement = conn.prepareStatement(
+                    "INSERT INTO " + destSchema + ".pull_stats " +
+                            "WITH updated_pulls AS (" +
+                            "  SELECT pull_number FROM " + destSchema + ".pulls WHERE owner = ? AND repo = ? AND updated_at > CAST(? AS TIMESTAMP)" +
+                            ")" +
+                            "SELECT * FROM " + srcSchema + ".pull_stats WHERE owner = ? AND repo = ?" +
+                            "INNER JOIN updated_pulls ON " + srcSchema + ".pull_stats.pull_number = updated_pulls.pull_number");
+            statement.setString(1, options.owner);
+            statement.setString(2, options.repo);
+            statement.setString(3, lastUpdated);
+            statement.setString(4, options.owner);
+            statement.setString(5, options.repo);
+        }
+        catch (Exception e) {
+            log.severe(e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     private static void syncReviews(Options options)
     {
         Connection conn = options.conn;

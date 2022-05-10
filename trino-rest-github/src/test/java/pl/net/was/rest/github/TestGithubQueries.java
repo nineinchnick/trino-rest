@@ -60,8 +60,9 @@ public class TestGithubQueries
                 "VALUES ('nineinchnick')");
         assertQuery("SELECT title FROM pulls WHERE owner = 'nineinchnick' AND repo = 'trino-rest' AND number = 1",
                 "VALUES ('GitHub runs')");
-        assertQuery("SELECT commits, additions, deletions, changed_files FROM pull_stats WHERE owner = 'nineinchnick' AND repo = 'trino-rest' AND pull_number = 1",
-                "VALUES (5, 1736, 75, 27)");
+        // H2 doesn't support TIMESTAMP WITH TIME ZONE type, so it requires a cast
+        assertQuery("SELECT commits, additions, deletions, changed_files, CAST(merged_at AS VARCHAR) FROM pull_stats WHERE owner = 'nineinchnick' AND repo = 'trino-rest' AND pull_number = 1",
+                "VALUES (5, 1736, 75, 27, '2021-04-09 12:08:15.000 UTC')");
         assertQuery("SELECT commit_message FROM pull_commits WHERE owner = 'nineinchnick' AND repo = 'trino-rest' AND pull_number = 1 AND sha = 'e43f63027cae851f3a02c2816b2f234991b2d139'",
                 "VALUES ('Add Github Action runs')");
         assertQuery("SELECT user_login FROM reviews WHERE owner = 'nineinchnick' AND repo = 'trino-rest' AND pull_number = 66",

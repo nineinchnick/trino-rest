@@ -364,7 +364,11 @@ public class GithubRest
                     new ColumnMetadata("commits", BIGINT),
                     new ColumnMetadata("additions", BIGINT),
                     new ColumnMetadata("deletions", BIGINT),
-                    new ColumnMetadata("changed_files", BIGINT)))
+                    new ColumnMetadata("changed_files", BIGINT),
+                    new ColumnMetadata("created_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
+                    new ColumnMetadata("updated_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
+                    new ColumnMetadata("closed_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
+                    new ColumnMetadata("merged_at", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3))))
             .put(GithubTable.REVIEWS, ImmutableList.of(
                     new ColumnMetadata("owner", VARCHAR),
                     new ColumnMetadata("repo", VARCHAR),
@@ -989,7 +993,11 @@ public class GithubRest
             "commits bigint, " +
             "additions bigint, " +
             "deletions bigint, " +
-            "changed_files bigint" +
+            "changed_files bigint, " +
+            "created_at timestamp(3) with time zone, " +
+            "updated_at timestamp(3) with time zone, " +
+            "closed_at timestamp(3) with time zone, " +
+            "merged_at timestamp(3) with time zone" +
             ")";
 
     public static final String REVIEWS_TABLE_TYPE = "array(row(" +
