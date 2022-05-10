@@ -132,6 +132,7 @@ public class Sync
         availableTables.put("issue_comments", Sync::syncIssueComments);
         availableTables.put("pulls", Sync::syncPulls);
         availableTables.put("pull_commits", Sync::syncPullCommits);
+        availableTables.put("pull_stats", Sync::syncPullStats);
         availableTables.put("reviews", Sync::syncReviews);
         availableTables.put("review_comments", Sync::syncReviewComments);
         availableTables.put("runs", Sync::syncRuns);
@@ -677,27 +678,40 @@ public class Sync
             // DELETE FROM pulls a USING pull_stats b WHERE a.updated_at < b.updated_at AND a.id = b.id;
             // or use the unique_pull_stats view (from `trino-rest-github/sql/views.sql`) that ignores duplicates
 
-            // there's no "since" filter, but we can sort by updated_at, so keep inserting records where this is greater than max
-            PreparedStatement lastUpdatedStatement = conn.prepareStatement(
-                    "SELECT COALESCE(MAX(updated_at), TIMESTAMP '0000-01-01') AS latest FROM " + destSchema + ".pull_stats WHERE owner = ? AND repo = ?");
-            lastUpdatedStatement.setString(1, options.owner);
-            lastUpdatedStatement.setString(2, options.repo);
-            ResultSet result = lastUpdatedStatement.executeQuery();
-            result.next();
-            String lastUpdated = result.getString(1);
+            // only fetch pull stats from up to 100 pulls without any in the last update period
+            String runsQuery = format(
+                    "WITH latest AS (" +
+                            "  SELECT owner, repo, number, max(updated_at) AS updated_at " +
+                            "  FROM " + destSchema + ".pulls" +
+                            "  WHERE owner = ? AND repo = ?" +
+                            "  GROUP BY owner, repo, number" +
+                            ") " +
+                            "SELECT p.number " +
+                            "FROM latest p " +
+                            "LEFT JOIN " + destSchema + ".pull_stats s ON (s.owner, s.repo, s.pull_number, s.updated_at) = (p.owner, p.repo, p.number, p.updated_at) " +
+                            "WHERE s.pull_number IS NULL " +
+                            "ORDER BY p.number ASC LIMIT %d", 100);
 
-            PreparedStatement statement = conn.prepareStatement(
+            PreparedStatement insertStatement = conn.prepareStatement(
                     "INSERT INTO " + destSchema + ".pull_stats " +
-                            "WITH updated_pulls AS (" +
-                            "  SELECT pull_number FROM " + destSchema + ".pulls WHERE owner = ? AND repo = ? AND updated_at > CAST(? AS TIMESTAMP)" +
-                            ")" +
-                            "SELECT * FROM " + srcSchema + ".pull_stats WHERE owner = ? AND repo = ?" +
-                            "INNER JOIN updated_pulls ON " + srcSchema + ".pull_stats.pull_number = updated_pulls.pull_number");
-            statement.setString(1, options.owner);
-            statement.setString(2, options.repo);
-            statement.setString(3, lastUpdated);
-            statement.setString(4, options.owner);
-            statement.setString(5, options.repo);
+                            "SELECT src.* " +
+                            "FROM (SELECT pull_stats(?, ?, p.number).* FROM (" + runsQuery + ") p) src " +
+                            "LEFT JOIN " + destSchema + ".pull_stats dst ON (dst.owner, dst.repo, dst.pull_number, dst.updated_at) = (src.owner, src.repo, src.pull_number, src.updated_at) " +
+                            "WHERE dst.pull_number IS NULL");
+            insertStatement.setString(1, options.owner);
+            insertStatement.setString(2, options.repo);
+            insertStatement.setString(3, options.owner);
+            insertStatement.setString(4, options.repo);
+
+            while (true) {
+                log.info("Fetching stats for pulls without any");
+                long startTime = System.currentTimeMillis();
+                int rows = retryExecute(insertStatement);
+                log.info(format("Inserted %d rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
+                if (rows == 0) {
+                    break;
+                }
+            }
         }
         catch (Exception e) {
             log.severe(e.getMessage());
