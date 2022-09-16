@@ -59,7 +59,7 @@
         <air.check.skip-checkstyle>false</air.check.skip-checkstyle>
 
         <!-- must be in sync with Dockerfile -->
-        <dep.trino.version>394</dep.trino.version>
+        <dep.trino.version>396</dep.trino.version>
         <dep.airlift.version>218</dep.airlift.version>
         <dep.packaging.version>${dep.airlift.version}</dep.packaging.version>
         <dep.errorprone.version>2.15.0</dep.errorprone.version>
