@@ -18,7 +18,7 @@
 
     <groupId>pl.net.was</groupId>
     <artifactId>trino-rest</artifactId>
-    <version>0.99-SNAPSHOT</version>
+    <version>0.100-SNAPSHOT</version>
     <description>Trino RESTful Connectors</description>
     <packaging>pom</packaging>
 
@@ -189,7 +189,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <version>3.3.0</version>
+                    <version>3.4.0</version>
                 </plugin>
                 <plugin>
                     <groupId>ca.vanzyl.provisio.maven.plugins</groupId>
