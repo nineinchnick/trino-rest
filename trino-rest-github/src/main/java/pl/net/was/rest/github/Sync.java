@@ -16,6 +16,7 @@ package pl.net.was.rest.github;
 
 import com.google.common.collect.ImmutableList;
 
+import java.net.NoRouteToHostException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -29,12 +30,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import static com.google.common.base.Throwables.getRootCause;
 import static java.lang.String.format;
+import static java.lang.System.exit;
 import static java.util.Objects.requireNonNull;
 
 public class Sync
@@ -126,7 +129,7 @@ public class Sync
         Options options = new Options(null, owner, repo, destSchema, srcSchema);
 
         // Note that the order in which these functions are called is determined by enabledTables, not availableTables
-        Map<String, Consumer<Options>> availableTables = new LinkedHashMap<>();
+        Map<String, Function<Options, Boolean>> availableTables = new LinkedHashMap<>();
         availableTables.put("repos", Sync::syncRepos);
         availableTables.put("commits", Sync::syncCommits);
         availableTables.put("issues", Sync::syncIssues);
@@ -149,23 +152,25 @@ public class Sync
         availableTables.put("members", Sync::syncMembers);
         availableTables.put("collaborators", Sync::syncCollaborators);
 
+        boolean result = true;
         try (Connection conn = DriverManager.getConnection(url, username, password)) {
             options.conn = conn;
             for (String table : enabledTables) {
-                Consumer<Options> consumer = availableTables.get(table);
-                if (consumer == null) {
+                Function<Options, Boolean> syncFunc = availableTables.get(table);
+                if (syncFunc == null) {
                     throw new IllegalArgumentException(format(
                             "Unknown table %s, must be one of: %s",
                             table,
                             String.join(", ", availableTables.keySet())));
                 }
-                consumer.accept(options);
+                result = syncFunc.apply(options) && result;
             }
         }
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
         }
+        exit(!result ? 1 : 0);
     }
 
     private static class Options
@@ -186,7 +191,7 @@ public class Sync
         }
     }
 
-    private static void syncRepos(Options options)
+    private static boolean syncRepos(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -234,10 +239,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncCommits(Options options)
+    private static boolean syncCommits(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -253,10 +260,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncIssues(Options options)
+    private static boolean syncIssues(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -279,10 +288,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncIssueComments(Options options)
+    private static boolean syncIssueComments(Options options)
     {
         try {
             options.conn.createStatement().executeUpdate(
@@ -309,10 +320,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncAllIssueComments(Options options)
+    private static boolean syncAllIssueComments(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -377,10 +390,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncAllPullComments(Options options)
+    private static boolean syncAllPullComments(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -445,10 +460,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncReviewComments(Options options)
+    private static boolean syncReviewComments(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -466,23 +483,24 @@ public class Sync
             // DELETE FROM review_comments a USING review_comments b WHERE a.updated_at < b.updated_at AND a.id = b.id;
 
             try {
-                syncSince(options, "review_comments");
+                return syncSince(options, "review_comments");
             }
             catch (Exception e) {
                 // fetching comments since the epoch can fail with a Server Error, so fall back to fetching them for every review
                 // TODO how to distinguish rate limit errors?
                 log.severe("Failed to get latest updated review comments, falling back to checking every review: " + e.getMessage());
 
-                syncAllReviewComments(options);
+                return syncAllReviewComments(options);
             }
         }
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
     }
 
-    private static void syncAllReviewComments(Options options)
+    private static boolean syncAllReviewComments(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -549,16 +567,18 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncSince(Options options, String name)
+    private static boolean syncSince(Options options, String name)
             throws SQLException
     {
-        syncSince(options, name, "updated_at");
+        return syncSince(options, name, "updated_at");
     }
 
-    private static void syncSince(Options options, String name, String columnName)
+    private static boolean syncSince(Options options, String name, String columnName)
             throws SQLException
     {
         Connection conn = options.conn;
@@ -588,9 +608,10 @@ public class Sync
                 break;
             }
         }
+        return true;
     }
 
-    private static void syncPulls(Options options)
+    private static boolean syncPulls(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -641,10 +662,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncPullCommits(Options options)
+    private static boolean syncPullCommits(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -714,10 +737,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncPullStats(Options options)
+    private static boolean syncPullStats(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -770,10 +795,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncReviews(Options options)
+    private static boolean syncReviews(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -797,8 +824,7 @@ public class Sync
             ResultSet comments = conn.prepareStatement("SELECT * FROM " + destSchema + ".review_comments LIMIT 1")
                     .executeQuery();
             if (!comments.next()) {
-                syncAllReviews(options);
-                return;
+                return syncAllReviews(options);
             }
 
             // only fetch up to 10 pulls for comments without reviews
@@ -837,10 +863,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncAllReviews(Options options)
+    private static boolean syncAllReviews(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -910,10 +938,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncWorkflows(Options options)
+    private static boolean syncWorkflows(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -953,10 +983,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncRuns(Options options)
+    private static boolean syncRuns(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -1000,10 +1032,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncJobs(Options options)
+    private static boolean syncJobs(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -1020,13 +1054,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
-            return;
+            return false;
         }
-        syncNewJobs(options);
-        syncRerunJobs(options);
+        return syncNewJobs(options) && syncRerunJobs(options);
     }
 
-    private static void syncNewJobs(Options options)
+    private static boolean syncNewJobs(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -1072,10 +1105,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncRerunJobs(Options options)
+    private static boolean syncRerunJobs(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -1112,7 +1147,7 @@ public class Sync
                 int rows = 0;
                 if (!idStatement.execute()) {
                     log.info("No results!");
-                    return;
+                    return true;
                 }
                 ResultSet resultSet = idStatement.getResultSet();
                 while (true) {
@@ -1140,10 +1175,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncSteps(Options options)
+    private static boolean syncSteps(Options options)
     {
         int batchSize = 2;
         Connection conn = options.conn;
@@ -1157,8 +1194,7 @@ public class Sync
             // CREATE INDEX ON steps(owner, repo);
 
             if (batchSize > 2) {
-                syncStepsBatches(options, batchSize);
-                return;
+                return syncStepsBatches(options, batchSize);
             }
             // if the batchSize is small, it's completely ignored and runs will be processed one by one
 
@@ -1201,7 +1237,7 @@ public class Sync
             log.info("Fetching run ids to get steps for");
             if (!idStatement.execute()) {
                 log.info("No results!");
-                return;
+                return true;
             }
             ResultSet resultSet = idStatement.getResultSet();
             while (resultSet.next()) {
@@ -1218,10 +1254,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncStepsBatches(Options options, int batchSize)
+    private static boolean syncStepsBatches(Options options, int batchSize)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -1277,10 +1315,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncArtifacts(Options options)
+    private static boolean syncArtifacts(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -1325,7 +1365,7 @@ public class Sync
             log.info("Fetching run ids to get artifacts for");
             if (!idStatement.execute()) {
                 log.info("No results!");
-                return;
+                return true;
             }
             ResultSet resultSet = idStatement.getResultSet();
             while (resultSet.next()) {
@@ -1342,10 +1382,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncJobLogs(Options options)
+    private static boolean syncJobLogs(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -1386,7 +1428,7 @@ public class Sync
             log.info("Fetching job ids to get logs for");
             if (!idStatement.execute()) {
                 log.info("No results!");
-                return;
+                return true;
             }
             ResultSet resultSet = idStatement.getResultSet();
             while (resultSet.next()) {
@@ -1403,10 +1445,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncCheckSuites(Options options)
+    private static boolean syncCheckSuites(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -1443,7 +1487,7 @@ public class Sync
             log.info("Fetching check suite ids from runs without any");
             if (!idStatement.execute()) {
                 log.info("No results!");
-                return;
+                return true;
             }
             ResultSet resultSet = idStatement.getResultSet();
             while (true) {
@@ -1464,10 +1508,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncCheckRuns(Options options)
+    private static boolean syncCheckRuns(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -1504,7 +1550,7 @@ public class Sync
             log.info("Fetching check suite ids from runs without any check runs");
             if (!idStatement.execute()) {
                 log.info("No results!");
-                return;
+                return true;
             }
             ResultSet resultSet = idStatement.getResultSet();
             while (true) {
@@ -1525,10 +1571,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncCheckRunAnnotations(Options options)
+    private static boolean syncCheckRunAnnotations(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -1565,7 +1613,7 @@ public class Sync
             log.info("Fetching check ids to get annotations for");
             if (!idStatement.execute()) {
                 log.info("No results!");
-                return;
+                return true;
             }
             ResultSet resultSet = idStatement.getResultSet();
             while (true) {
@@ -1586,10 +1634,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncTeams(Options options)
+    private static boolean syncTeams(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -1634,10 +1684,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncMembers(Options options)
+    private static boolean syncMembers(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -1687,10 +1739,12 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
-    private static void syncCollaborators(Options options)
+    private static boolean syncCollaborators(Options options)
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
@@ -1738,7 +1792,9 @@ public class Sync
         catch (Exception e) {
             log.severe(e.getMessage());
             e.printStackTrace();
+            return false;
         }
+        return true;
     }
 
     private static int getEmptyLimit()
@@ -1759,7 +1815,8 @@ public class Sync
                 return statement.executeUpdate();
             }
             catch (SQLException e) {
-                if (breaker-- == 1) {
+                // NoRouteToHostException can happend if the Trino server crashes
+                if (getRootCause(e) instanceof NoRouteToHostException || breaker-- == 1) {
                     throw e;
                 }
                 log.severe(e.getMessage());
