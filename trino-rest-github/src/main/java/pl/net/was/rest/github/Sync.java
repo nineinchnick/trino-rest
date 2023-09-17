@@ -1006,7 +1006,7 @@ public class Sync
             PreparedStatement statement = conn.prepareStatement(
                     "INSERT INTO " + destSchema + ".runs " +
                             "SELECT src.* FROM unnest(runs(?, ?, ?, 'completed')) src " +
-                            "LEFT JOIN " + destSchema + ".runs dst ON dst.id = src.id " +
+                            "LEFT JOIN " + destSchema + ".runs dst ON (dst.id, dst.run_attempt) = (src.id, src.run_attempt) " +
                             "WHERE dst.id IS NULL");
             statement.setString(1, options.owner);
             statement.setString(2, options.repo);
