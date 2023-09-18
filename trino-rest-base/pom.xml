@@ -19,12 +19,12 @@
     <artifactId>trino-rest-base</artifactId>
     <description>Trino REST base</description>
     <packaging>jar</packaging>
-    <version>0.116-SNAPSHOT</version>
+    <version>0.116</version>
 
     <parent>
         <groupId>pl.net.was</groupId>
         <artifactId>trino-rest</artifactId>
-        <version>0.116-SNAPSHOT</version>
+        <version>0.116</version>
     </parent>
 
     <licenses>

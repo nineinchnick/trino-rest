@@ -18,13 +18,13 @@
 
     <groupId>pl.net.was</groupId>
     <artifactId>trino-rest</artifactId>
-    <version>0.116-SNAPSHOT</version>
+    <version>0.116</version>
     <description>Trino RESTful Connectors</description>
     <packaging>pom</packaging>
 
     <scm>
         <developerConnection>scm:git:https://github.com/nineinchnick/trino-rest.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>v0.116</tag>
     </scm>
 
     <parent>
