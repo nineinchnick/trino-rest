@@ -60,7 +60,8 @@ public abstract class BaseFunction
             rowBuilder.buildEntry(writer::writeTo);
         }));
         pageBuilder.declarePosition();
-        return arrayType.getObject(blockBuilder, blockBuilder.getPositionCount() - 1);
+        Block block = blockBuilder.build();
+        return arrayType.getObject(block, block.getPositionCount() - 1);
     }
 
     protected static LocalDateTime fromTrinoTimestamp(long epochMicros)

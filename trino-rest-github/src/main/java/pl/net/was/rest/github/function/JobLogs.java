@@ -117,7 +117,8 @@ public class JobLogs
         });
 
         pageBuilder.declarePosition();
-        return arrayType.getObject(blockBuilder, blockBuilder.getPositionCount() - 1);
+        Block block = blockBuilder.build();
+        return arrayType.getObject(block, block.getPositionCount() - 1);
     }
 
     public static List<Slice> getParts(InputStream inputStream)

@@ -363,7 +363,7 @@ public class Repository
                 packTimestamp(pushedAt),
                 packTimestamp(createdAt),
                 packTimestamp(updatedAt),
-                mapType.getObject(permissions, 0));
+                mapType.getObject(permissions.build(), 0));
     }
 
     @Override
@@ -416,7 +416,7 @@ public class Repository
                 VARCHAR.writeString(keyBuilder, key);
                 BOOLEAN.writeBoolean(valueBuilder, value);
             }));
-            mapType.writeObject(fieldBuilders.get(i), mapType.getObject(permissions, 0));
+            mapType.writeObject(fieldBuilders.get(i), mapType.getObject(permissions.build(), 0));
         }
         else {
             fieldBuilders.get(i).appendNull();

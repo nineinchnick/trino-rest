@@ -73,6 +73,7 @@ public class UserGetter
         RowBlockBuilder blockBuilder = (RowBlockBuilder) pageBuilder.getBlockBuilder(0);
         blockBuilder.buildEntry(writer::writeTo);
         pageBuilder.declarePosition();
-        return rowType.getObject(blockBuilder, blockBuilder.getPositionCount() - 1);
+        Block block = blockBuilder.build();
+        return rowType.getObject(block, block.getPositionCount() - 1);
     }
 }

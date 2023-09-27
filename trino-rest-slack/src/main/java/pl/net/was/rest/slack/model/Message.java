@@ -131,6 +131,6 @@ public class Message
                 eventTs != null ? eventTs : "",
                 isStarred,
                 pinnedToList.build(),
-                mapType.getObject(reactions, 0));
+                mapType.getObject(reactions.build(), 0));
     }
 }
