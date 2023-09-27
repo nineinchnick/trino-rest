@@ -1332,9 +1332,9 @@ public class Sync
             // artifacts can be very big, so to avoid scanning the whole table create another one with only the identifiers
             // also allow nulls in this table to know which runs don't have any artifacts to avoid checking them more than once
             conn.createStatement().executeUpdate("CREATE TABLE IF NOT EXISTS " + destSchema + ".runs_artifacts AS " +
-                            "SELECT DISTINCT r.owner, r.repo, r.id AS run_id, a.id, a.path, a.part_number " +
-                            "FROM " + destSchema + ".runs r" +
-                            "LEFT JOIN " + destSchema + ".artifacts a ON (r.owner, r.repo, r.id) = (a.owner, a.repo, a.run_id)");
+                    "SELECT DISTINCT r.owner, r.repo, r.id AS run_id, a.id, a.path, a.part_number " +
+                    "FROM " + destSchema + ".runs r" +
+                    "LEFT JOIN " + destSchema + ".artifacts a ON (r.owner, r.repo, r.id) = (a.owner, a.repo, a.run_id)");
             // consider adding some indexes:
             // ALTER TABLE artifacts ADD PRIMARY KEY (id, path, part_number);
             // CREATE INDEX ON artifacts(owner, repo);
@@ -1414,6 +1414,7 @@ public class Sync
         }
         return true;
     }
+
     private static String randomString()
     {
         int leftLimit = 48; // numeral '0'
