@@ -19,12 +19,12 @@
     <artifactId>trino-rest-github</artifactId>
     <description>Trino REST GitHub</description>
     <packaging>trino-plugin</packaging>
-    <version>0.118</version>
+    <version>0.119-SNAPSHOT</version>
 
     <parent>
         <groupId>pl.net.was</groupId>
         <artifactId>trino-rest</artifactId>
-        <version>0.118</version>
+        <version>0.119-SNAPSHOT</version>
     </parent>
 
     <properties>
