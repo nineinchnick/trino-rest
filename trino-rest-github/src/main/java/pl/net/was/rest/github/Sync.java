@@ -29,6 +29,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.logging.Handler;
@@ -1328,6 +1329,12 @@ public class Sync
         try {
             conn.createStatement().executeUpdate(
                     "CREATE TABLE IF NOT EXISTS " + destSchema + ".artifacts AS SELECT * FROM " + srcSchema + ".artifacts WITH NO DATA");
+            // artifacts can be very big, so to avoid scanning the whole table create another one with only the identifiers
+            // also allow nulls in this table to know which runs don't have any artifacts to avoid checking them more than once
+            conn.createStatement().executeUpdate("CREATE TABLE IF NOT EXISTS " + destSchema + ".runs_artifacts AS " +
+                            "SELECT DISTINCT r.owner, r.repo, r.id AS run_id, a.id, a.path, a.part_number " +
+                            "FROM " + destSchema + ".runs r" +
+                            "LEFT JOIN " + destSchema + ".artifacts a ON (r.owner, r.repo, r.id) = (a.owner, a.repo, a.run_id)");
             // consider adding some indexes:
             // ALTER TABLE artifacts ADD PRIMARY KEY (id, path, part_number);
             // CREATE INDEX ON artifacts(owner, repo);
@@ -1336,13 +1343,12 @@ public class Sync
             // assuming that all runs should finish in at least 2 hours
             // find the last run id at least 2 hours old with a check_run present
             // and move up
-            // TODO because dynamic filtering is not supported yet, CROSS JOIN LATERAL between runs and artifacts would not push down filter on run_id
             String runsQuery = "SELECT r.id " +
                     "FROM " + destSchema + ".runs r " +
-                    "LEFT JOIN " + destSchema + ".artifacts a ON a.run_id = r.id " +
+                    "LEFT JOIN " + destSchema + ".runs_artifacts a ON a.run_id = r.id " +
                     "WHERE r.owner = ? AND r.repo = ? AND r.status = 'completed' AND r.created_at > NOW() - INTERVAL '2' MONTH AND r.created_at < NOW() - INTERVAL '2' HOUR " +
                     "GROUP BY r.id " +
-                    "HAVING COUNT(a.id) != 0 " +
+                    "HAVING COUNT(a.run_id) != 0 " +
                     "ORDER BY r.id DESC LIMIT 1";
             PreparedStatement idStatement = conn.prepareStatement("SELECT r.id " +
                     "FROM " + destSchema + ".runs r " +
@@ -1353,14 +1359,29 @@ public class Sync
             idStatement.setString(3, options.owner);
             idStatement.setString(4, options.repo);
 
-            String query = "INSERT INTO " + destSchema + ".artifacts " +
+            String tempTable = destSchema + ".tmp_artifacts_" + randomString();
+            PreparedStatement createStatement = conn.prepareStatement("CREATE TABLE " + tempTable + " AS " +
+                    "SELECT * FROM " + destSchema + ".artifacts WITH NO DATA");
+            PreparedStatement fetchStatement = conn.prepareStatement("INSERT INTO " + tempTable + " " +
                     "SELECT src.* " +
                     "FROM " + srcSchema + ".artifacts src " +
-                    "LEFT JOIN " + destSchema + ".artifacts dst ON dst.run_id = ? AND (dst.id, dst.path, dst.part_number) = (src.id, src.path, src.part_number) " +
-                    "WHERE src.owner = ? AND src.repo = ? AND src.run_id = ? AND dst.id IS NULL";
-            PreparedStatement insertStatement = conn.prepareStatement(query);
-            insertStatement.setString(2, options.owner);
-            insertStatement.setString(3, options.repo);
+                    "WHERE src.owner = ? AND src.repo = ? AND src.run_id = ?");
+            fetchStatement.setString(1, options.owner);
+            fetchStatement.setString(2, options.repo);
+            PreparedStatement copyDataStatement = conn.prepareStatement("INSERT INTO " + destSchema + ".artifacts " +
+                    "SELECT src.* " +
+                    "FROM " + tempTable + " src " +
+                    "LEFT JOIN " + destSchema + ".runs_artifacts dst ON (dst.owner, dst.repo, dst.run_id, dst.id, dst.path, dst.part_number) = (src.owner, src.repo, src.run_id, src.id, src.path, src.part_number) " +
+                    "WHERE dst.run_id IS NULL");
+            PreparedStatement copyIdsStatement = conn.prepareStatement("INSERT INTO " + destSchema + ".runs_artifacts " +
+                    "SELECT r.owner, r.repo, r.run_id, src.id, src.path, src.part_number " +
+                    "FROM (SELECT ? AS owner, ? AS repo, ? AS run_id) r " +
+                    "LEFT JOIN " + tempTable + " src ON 1=1 " +
+                    "LEFT JOIN " + destSchema + ".runs_artifacts dst ON (dst.owner, dst.repo, dst.run_id, dst.id, dst.path, dst.part_number) = (src.owner, src.repo, src.run_id, src.id, src.path, src.part_number) " +
+                    "WHERE dst.id IS NULL");
+            copyIdsStatement.setString(1, options.owner);
+            copyIdsStatement.setString(2, options.repo);
+            PreparedStatement cleanupStatement = conn.prepareStatement("DROP TABLE " + tempTable);
 
             log.info("Fetching run ids to get artifacts for");
             if (!idStatement.execute()) {
@@ -1370,13 +1391,20 @@ public class Sync
             ResultSet resultSet = idStatement.getResultSet();
             while (resultSet.next()) {
                 long runId = resultSet.getLong(1);
-                insertStatement.setLong(1, runId);
-                insertStatement.setLong(4, runId);
+                fetchStatement.setLong(3, runId);
 
                 log.info(format("Fetching artifacts for jobs of run %d", runId));
                 long startTime = System.currentTimeMillis();
-                int rows = retryExecute(insertStatement);
-                log.info(format("Inserted %d rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
+                retryExecute(createStatement);
+                int rows = retryExecute(fetchStatement);
+                log.info(format("Fetched %d rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
+
+                rows = retryExecute(copyDataStatement);
+                log.info(format("Saved %d rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
+                copyIdsStatement.setLong(3, runId);
+                rows = retryExecute(copyIdsStatement);
+                log.info(format("Indexed %d rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
+                retryExecute(cleanupStatement);
             }
         }
         catch (Exception e) {
@@ -1385,6 +1413,19 @@ public class Sync
             return false;
         }
         return true;
+    }
+    private static String randomString()
+    {
+        int leftLimit = 48; // numeral '0'
+        int rightLimit = 122; // letter 'z'
+        int targetStringLength = 10;
+        Random random = new Random();
+
+        return random.ints(leftLimit, rightLimit + 1)
+                .filter(i -> (i <= 57 || i >= 65) && (i <= 90 || i >= 97))
+                .limit(targetStringLength)
+                .collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append)
+                .toString();
     }
 
     private static boolean syncJobLogs(Options options)
