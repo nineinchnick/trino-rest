@@ -19,12 +19,12 @@
     <artifactId>trino-rest-slack</artifactId>
     <description>Trino REST Slack</description>
     <packaging>trino-plugin</packaging>
-    <version>0.119</version>
+    <version>0.120-SNAPSHOT</version>
 
     <parent>
         <groupId>pl.net.was</groupId>
         <artifactId>trino-rest</artifactId>
-        <version>0.119</version>
+        <version>0.120-SNAPSHOT</version>
     </parent>
 
     <properties>
