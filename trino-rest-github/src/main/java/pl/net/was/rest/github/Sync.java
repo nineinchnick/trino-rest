@@ -1373,14 +1373,13 @@ public class Sync
                     "FROM " + tempTable + " src " +
                     "LEFT JOIN " + destSchema + ".runs_artifacts dst ON (dst.owner, dst.repo, dst.run_id, dst.id, dst.path, dst.part_number) = (src.owner, src.repo, src.run_id, src.id, src.path, src.part_number) " +
                     "WHERE dst.run_id IS NULL");
+            PreparedStatement nullIdsStatement = conn.prepareStatement("INSERT INTO " + destSchema + ".runs_artifacts " +
+                    "SELECT ? AS owner, ? AS repo, ? AS run_id, NULL AS id, NULL AS path, NULL AS part_number");
+            nullIdsStatement.setString(1, options.owner);
+            nullIdsStatement.setString(2, options.repo);
             PreparedStatement copyIdsStatement = conn.prepareStatement("INSERT INTO " + destSchema + ".runs_artifacts " +
-                    "SELECT r.owner, r.repo, r.run_id, src.id, src.path, src.part_number " +
-                    "FROM (SELECT ? AS owner, ? AS repo, ? AS run_id) r " +
-                    "LEFT JOIN " + tempTable + " src ON 1=1 " +
-                    "LEFT JOIN " + destSchema + ".runs_artifacts dst ON (dst.owner, dst.repo, dst.run_id, dst.id, dst.path, dst.part_number) = (src.owner, src.repo, src.run_id, src.id, src.path, src.part_number) " +
-                    "WHERE dst.id IS NULL");
-            copyIdsStatement.setString(1, options.owner);
-            copyIdsStatement.setString(2, options.repo);
+                    "SELECT src.owner, src.repo, src.run_id, src.id, src.path, src.part_number " +
+                    "FROM " + tempTable + " src");
             PreparedStatement cleanupStatement = conn.prepareStatement("DROP TABLE " + tempTable);
 
             log.info("Fetching run ids to get artifacts for");
@@ -1398,12 +1397,17 @@ public class Sync
                 retryExecute(createStatement);
                 int rows = retryExecute(fetchStatement);
                 log.info(format("Fetched %d rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
-
-                rows = retryExecute(copyDataStatement);
-                log.info(format("Saved %d rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
-                copyIdsStatement.setLong(3, runId);
-                rows = retryExecute(copyIdsStatement);
-                log.info(format("Indexed %d rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
+                if (rows == 0) {
+                    nullIdsStatement.setLong(3, runId);
+                    rows = retryExecute(nullIdsStatement);
+                    log.info(format("Indexed %d null rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
+                }
+                else {
+                    rows = retryExecute(copyDataStatement);
+                    log.info(format("Saved %d rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
+                    rows = retryExecute(copyIdsStatement);
+                    log.info(format("Indexed %d rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
+                }
                 retryExecute(cleanupStatement);
             }
         }
