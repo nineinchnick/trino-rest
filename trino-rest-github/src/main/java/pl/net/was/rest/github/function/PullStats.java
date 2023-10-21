@@ -19,6 +19,7 @@ import io.airlift.slice.Slice;
 import io.trino.spi.PageBuilder;
 import io.trino.spi.block.Block;
 import io.trino.spi.block.RowBlockBuilder;
+import io.trino.spi.block.SqlRow;
 import io.trino.spi.function.Description;
 import io.trino.spi.function.ScalarFunction;
 import io.trino.spi.function.SqlType;
@@ -51,7 +52,7 @@ public class PullStats
     }
 
     @SqlType(PULL_STATS_ROW_TYPE)
-    public Block get(@SqlType(VARCHAR) Slice owner, @SqlType(VARCHAR) Slice repo, @SqlType(BIGINT) long pullNumber)
+    public SqlRow get(@SqlType(VARCHAR) Slice owner, @SqlType(VARCHAR) Slice repo, @SqlType(BIGINT) long pullNumber)
             throws IOException
     {
         final String ownerString = owner.toStringUtf8();
@@ -72,7 +73,7 @@ public class PullStats
         return buildBlock(item);
     }
 
-    private Block buildBlock(BlockWriter writer)
+    private SqlRow buildBlock(BlockWriter writer)
     {
         if (pageBuilder.isFull()) {
             pageBuilder.reset();

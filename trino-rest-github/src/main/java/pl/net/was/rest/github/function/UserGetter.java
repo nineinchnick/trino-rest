@@ -19,6 +19,7 @@ import io.airlift.slice.Slice;
 import io.trino.spi.PageBuilder;
 import io.trino.spi.block.Block;
 import io.trino.spi.block.RowBlockBuilder;
+import io.trino.spi.block.SqlRow;
 import io.trino.spi.function.Description;
 import io.trino.spi.function.ScalarFunction;
 import io.trino.spi.function.SqlType;
@@ -50,7 +51,7 @@ public class UserGetter
     }
 
     @SqlType(USER_ROW_TYPE)
-    public Block get(@SqlType(VARCHAR) Slice username)
+    public SqlRow get(@SqlType(VARCHAR) Slice username)
             throws IOException
     {
         Response<User> response = service.getUser(
@@ -64,7 +65,7 @@ public class UserGetter
         return buildBlock(item);
     }
 
-    private Block buildBlock(BlockWriter writer)
+    private SqlRow buildBlock(BlockWriter writer)
     {
         if (pageBuilder.isFull()) {
             pageBuilder.reset();

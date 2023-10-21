@@ -19,6 +19,7 @@ import io.airlift.slice.Slice;
 import io.trino.spi.PageBuilder;
 import io.trino.spi.block.Block;
 import io.trino.spi.block.RowBlockBuilder;
+import io.trino.spi.block.SqlRow;
 import io.trino.spi.function.Description;
 import io.trino.spi.function.ScalarFunction;
 import io.trino.spi.function.SqlType;
@@ -50,7 +51,7 @@ public class Org
     }
 
     @SqlType(ORG_ROW_TYPE)
-    public Block get(@SqlType(VARCHAR) Slice org)
+    public SqlRow get(@SqlType(VARCHAR) Slice org)
             throws IOException
     {
         Response<Organization> response = service.getOrg(
@@ -64,7 +65,7 @@ public class Org
         return buildBlock(item);
     }
 
-    private Block buildBlock(BlockWriter writer)
+    private SqlRow buildBlock(BlockWriter writer)
     {
         if (pageBuilder.isFull()) {
             pageBuilder.reset();
