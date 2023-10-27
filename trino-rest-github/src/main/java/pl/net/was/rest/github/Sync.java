@@ -40,6 +40,7 @@ import static com.google.common.base.Throwables.getRootCause;
 import static java.lang.String.format;
 import static java.lang.System.exit;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class Sync
 {
@@ -74,7 +75,8 @@ public class Sync
                 "TRINO_PASSWORD",
                 "EMPTY_INSERT_LIMIT",
                 "CHECK_STEPS_DUPLICATES",
-                "CHECK_ARTIFACTS_DUPLICATES");
+                "CHECK_ARTIFACTS_DUPLICATES",
+                "QUERY_DELAY_MS");
         Map<String, String> defaults = Map.of(
                 "TRINO_URL", url,
                 "TRINO_USERNAME", username,
@@ -84,7 +86,8 @@ public class Sync
                 "LOG_LEVEL", "INFO",
                 "EMPTY_INSERT_LIMIT", "1",
                 "CHECK_STEPS_DUPLICATES", "false",
-                "CHECK_ARTIFACTS_DUPLICATES", "false");
+                "CHECK_ARTIFACTS_DUPLICATES", "false",
+                "QUERY_DELAY_MS", "0");
         for (String name : names) {
             String value = env.getOrDefault(name, defaults.getOrDefault(name, ""));
             if (!value.isEmpty() && name.equals("TRINO_PASSWORD")) {
@@ -1852,13 +1855,25 @@ public class Sync
         return Integer.parseInt(limit);
     }
 
+    private static long getQueryDelayMillis()
+    {
+        String queryDelay = System.getenv("QUERY_DELAY_MS");
+        if (queryDelay == null) {
+            return 0L;
+        }
+        return Long.parseLong(queryDelay);
+    }
+
     private static int retryExecute(PreparedStatement statement)
             throws SQLException
     {
         int breaker = 3;
         while (true) {
             try {
-                return statement.executeUpdate();
+                long startTime = System.currentTimeMillis();
+                int queryResult = statement.executeUpdate();
+                MILLISECONDS.sleep(getQueryDelayMillis() - (System.currentTimeMillis() - startTime));
+                return queryResult;
             }
             catch (SQLException e) {
                 // NoRouteToHostException can happend if the Trino server crashes
@@ -1867,6 +1882,9 @@ public class Sync
                 }
                 log.severe(e.getMessage());
                 log.severe(format("Retrying %d more times", breaker));
+            }
+            catch (InterruptedException e) {
+                // Do nothing
             }
         }
     }
