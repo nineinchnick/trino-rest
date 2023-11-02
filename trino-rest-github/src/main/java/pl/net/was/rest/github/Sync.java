@@ -76,6 +76,7 @@ public class Sync
                 "EMPTY_INSERT_LIMIT",
                 "CHECK_STEPS_DUPLICATES",
                 "CHECK_ARTIFACTS_DUPLICATES",
+                "QUERY_BATCH_SIZE",
                 "QUERY_DELAY_MS");
         Map<String, String> defaults = Map.of(
                 "TRINO_URL", url,
@@ -87,6 +88,7 @@ public class Sync
                 "EMPTY_INSERT_LIMIT", "1",
                 "CHECK_STEPS_DUPLICATES", "false",
                 "CHECK_ARTIFACTS_DUPLICATES", "false",
+                "QUERY_BATCH_SIZE", "10",
                 "QUERY_DELAY_MS", "0");
         for (String name : names) {
             String value = env.getOrDefault(name, defaults.getOrDefault(name, ""));
@@ -1119,7 +1121,7 @@ public class Sync
         Connection conn = options.conn;
         String destSchema = options.destSchema;
         String srcSchema = options.srcSchema;
-        int batchSize = 10;
+        int batchSize = getQueryBatchSize();
         try {
             // first get updated runs where run_attempt is higher than it was
             String runsQuery =
@@ -1504,7 +1506,7 @@ public class Sync
         Connection conn = options.conn;
         String destSchema = options.destSchema;
         String srcSchema = options.srcSchema;
-        int batchSize = 10;
+        int batchSize = getQueryBatchSize();
         try {
             conn.createStatement().executeUpdate(
                     "CREATE TABLE IF NOT EXISTS " + destSchema + ".check_suites AS SELECT * FROM " + srcSchema + ".check_suites WITH NO DATA");
@@ -1567,7 +1569,7 @@ public class Sync
         Connection conn = options.conn;
         String destSchema = options.destSchema;
         String srcSchema = options.srcSchema;
-        int batchSize = 10;
+        int batchSize = getQueryBatchSize();
         try {
             conn.createStatement().executeUpdate(
                     "CREATE TABLE IF NOT EXISTS " + destSchema + ".check_runs AS SELECT * FROM " + srcSchema + ".check_runs WITH NO DATA");
@@ -1630,7 +1632,7 @@ public class Sync
         Connection conn = options.conn;
         String destSchema = options.destSchema;
         String srcSchema = options.srcSchema;
-        int batchSize = 10;
+        int batchSize = getQueryBatchSize();
         try {
             conn.createStatement().executeUpdate(
                     "CREATE TABLE IF NOT EXISTS " + destSchema + ".check_run_annotations AS SELECT * FROM " + srcSchema + ".check_run_annotations WITH NO DATA");
@@ -1853,6 +1855,15 @@ public class Sync
             return 1;
         }
         return Integer.parseInt(limit);
+    }
+
+    private static int getQueryBatchSize()
+    {
+        String queryBatchSize = System.getenv("QUERY_BATCH_SIZE");
+        if (queryBatchSize == null) {
+            return 10;
+        }
+        return Integer.parseInt(queryBatchSize);
     }
 
     private static long getQueryDelayMillis()
