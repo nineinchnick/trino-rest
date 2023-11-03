@@ -2,10 +2,7 @@ ARG TRINO_VERSION
 FROM nineinchnick/trino-core:$TRINO_VERSION
 
 USER root
-RUN set -xeu && \
-    apt-get update && \
-    apt-get install --yes jq && \
-    rm -rf /var/lib/apt/lists/*
+RUN microdnf install -y jq
 USER trino:trino
 
 ARG VERSION
