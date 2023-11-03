@@ -14,6 +14,7 @@
 
 package pl.net.was.rest;
 
+import com.google.common.util.concurrent.RateLimiter;
 import com.google.errorprone.annotations.CanIgnoreReturnValue;
 import io.airlift.configuration.Config;
 import io.airlift.configuration.ConfigSecuritySensitive;
@@ -47,6 +48,7 @@ public class RestConfig
     private Duration clientReadTimeout = Duration.succinctDuration(10, TimeUnit.SECONDS);
     private DataSize clientMaxBinaryDownloadSize;
     private int minSplits = 1;
+    private double maxRequestsPerSecond = Double.MAX_VALUE;
     private List<String> minSplitTables = List.of();
 
     public String getCustomerKey()
@@ -200,6 +202,15 @@ public class RestConfig
         if (!clientCachePath.isEmpty() && clientCacheMaxSize.toBytes() != 0) {
             clientBuilder.cache(new Cache(new File(clientCachePath), clientCacheMaxSize.toBytes()));
         }
+
+        if (maxRequestsPerSecond != Double.MAX_VALUE) {
+            RateLimiter rateLimiter = RateLimiter.create(maxRequestsPerSecond);
+            clientBuilder.addInterceptor(chain -> {
+                rateLimiter.acquire(1);
+                return chain.proceed(chain.request());
+            });
+        }
+
         clientBuilder.connectTimeout(clientConnectTimeout.toMillis(), TimeUnit.MILLISECONDS);
         clientBuilder.readTimeout(clientReadTimeout.toMillis(), TimeUnit.MILLISECONDS);
 
@@ -231,6 +242,18 @@ public class RestConfig
     public RestConfig setMinSplitTables(String minSplitTables)
     {
         this.minSplitTables = Arrays.stream(minSplitTables.split(",")).map(String::trim).collect(Collectors.toList());
+        return this;
+    }
+
+    public double getMaxRequestsPerSecond()
+    {
+        return maxRequestsPerSecond;
+    }
+
+    @Config("max-requests-per-second")
+    public RestConfig setMaxRequestsPerSecond(double maxRequestsPerSecond)
+    {
+        this.maxRequestsPerSecond = maxRequestsPerSecond;
         return this;
     }
 }
