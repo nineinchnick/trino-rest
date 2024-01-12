@@ -12,8 +12,4 @@ if [ -n "$SLACK_TOKEN" ]; then
     cp $catalog_dir/disabled/slack.properties $catalog_dir/slack.properties
 fi
 
-if [ -n "$TWITTER_TOKEN" ]; then
-    cp $catalog_dir/disabled/twitter.properties $catalog_dir/twitter.properties
-fi
-
 exec "$@"

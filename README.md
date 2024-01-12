@@ -12,7 +12,6 @@ docker run \
   --name trino-rest-github \
   -e GITHUB_TOKEN \
   -e SLACK_TOKEN \
-  -e TWITTER_TOKEN -e TWITTER_SECRET -e TWITTER_CUSTOMER_KEY -e TWITTER_CUSTOMER_SECRET \
   -p 8080:8080 \
   nineinchnick/trino-rest:0.76
 ```
@@ -20,7 +19,6 @@ docker run \
 Supported connectors and their required environmental variables:
 * Github: `GITHUB_TOKEN`
 * Slack: `SLACK_TOKEN`
-* Twitter: `TWITTER_TOKEN`, `TWITTER_SECRET`, `TWITTER_CUSTOMER_KEY`, and `TWITTER_CUSTOMER_SECRET`
 
 Then use your favourite SQL client to connect to Trino running at http://localhost:8080
 
