@@ -41,17 +41,17 @@ An example command to run the Trino server with the git plugin and catalog enabl
 ```bash
 src=$(git rev-parse --show-toplevel)
 docker run \
-  -v $src/trino-rest-github/target/trino-rest-github-0.77-SNAPSHOT:/usr/lib/trino/plugin/github \
+  -v $src/trino-rest-github/target/trino-rest-github-0.136-SNAPSHOT:/usr/lib/trino/plugin/github \
   -v $src/catalog:/etc/trino/catalog \
   -p 8080:8080 \
   --name trino \
   -d \
-  trinodb/trino:392
+  trinodb/trino:440
 ```
 
 Connect to that server using:
 ```bash
-docker run -it --rm --link trino trinodb/trino:392 trino --server trino:8080 --catalog github --schema default
+docker run -it --rm --link trino trinodb/trino:440 trino --server trino:8080 --catalog github --schema default
 ```
 
 # Authentication and rate limits
@@ -84,7 +84,7 @@ that does this in an incremental fashion, that is it can be run in regular inter
 
 To run the `Sync` utility in `trino-rest-github`:
 ```bash
-java -cp "trino-rest-github/target/trino-rest-github-0.77-SNAPSHOT/*" pl.net.was.rest.github.Sync
+java -cp "trino-rest-github/target/trino-rest-github-0.136-SNAPSHOT/*" pl.net.was.rest.github.Sync
 ```
 
 Check how much data the `Sync` collected by running a query like:
