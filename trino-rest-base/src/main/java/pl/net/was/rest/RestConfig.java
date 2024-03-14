@@ -21,10 +21,9 @@ import io.airlift.configuration.ConfigSecuritySensitive;
 import io.airlift.units.DataSize;
 import io.airlift.units.Duration;
 import io.airlift.units.MinDuration;
+import jakarta.validation.constraints.NotNull;
 import okhttp3.Cache;
 import okhttp3.OkHttpClient;
-
-import javax.validation.constraints.NotNull;
 
 import java.io.File;
 import java.nio.file.Paths;
