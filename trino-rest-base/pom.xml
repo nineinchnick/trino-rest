@@ -5,11 +5,11 @@
     <parent>
         <groupId>pl.net.was</groupId>
         <artifactId>trino-rest</artifactId>
-        <version>0.139-SNAPSHOT</version>
+        <version>0.139</version>
     </parent>
 
     <artifactId>trino-rest-base</artifactId>
-    <version>0.139-SNAPSHOT</version>
+    <version>0.139</version>
     <packaging>jar</packaging>
     <description>Trino REST base</description>
 
