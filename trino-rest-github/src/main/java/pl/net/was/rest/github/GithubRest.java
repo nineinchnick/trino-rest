@@ -54,6 +54,7 @@ import io.trino.spi.type.TimestampWithTimeZoneType;
 import io.trino.spi.type.TypeOperators;
 import jakarta.inject.Inject;
 import okhttp3.ResponseBody;
+import pl.net.was.rest.RateLimitedSplitSource;
 import pl.net.was.rest.Rest;
 import pl.net.was.rest.RestColumnHandle;
 import pl.net.was.rest.RestConfig;
@@ -112,6 +113,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.IntFunction;
@@ -131,6 +133,7 @@ import static io.trino.spi.type.VarcharType.VARCHAR;
 import static java.lang.String.format;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.Executors.newFixedThreadPool;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static pl.net.was.rest.github.function.Artifacts.download;
@@ -151,9 +154,12 @@ public class GithubRest
 
     private static int minSplits;
     private static List<GithubTable> minSplitTables;
+    private static double maxSplitsPerSecond;
     private static String token;
     private static GithubService service;
     private static long maxBinaryDownloadSizeBytes;
+
+    private final ExecutorService executor = newFixedThreadPool(1);
 
     public static final Map<GithubTable, List<ColumnMetadata>> columns = new ImmutableMap.Builder<GithubTable, List<ColumnMetadata>>()
             .put(GithubTable.ORGS, ImmutableList.of(
@@ -1370,6 +1376,7 @@ public class GithubRest
                     GithubTable.RUNS,
                     GithubTable.CHECK_SUITES);
         }
+        GithubRest.maxSplitsPerSecond = config.getMaxSplitsPerSecond();
         columnHandles = columns.keySet()
                 .stream()
                 .collect(Collectors.toMap(
@@ -2754,7 +2761,7 @@ public class GithubRest
         FilterApplier filterApplier = filterAppliers.get(tableName);
         if (filterApplier == null) {
             List<RestConnectorSplit> splits = List.of(new RestConnectorSplit(table, addresses));
-            return new FixedSplitSource(splits);
+            return getSplitSource(splits);
         }
         // merge in constraints from dynamicFilter, which may contain multivalued domains
         Optional<ConstraintApplicationResult<ConnectorTableHandle>> result = filterApplier.applyFilter(
@@ -2769,7 +2776,7 @@ public class GithubRest
         TupleDomain<ColumnHandle> constraint = table.getConstraint();
         if (constraint.getDomains().isEmpty()) {
             List<RestConnectorSplit> splits = List.of(new RestConnectorSplit(table, addresses));
-            return new FixedSplitSource(splits);
+            return getSplitSource(splits);
         }
 
         /*
@@ -2849,7 +2856,15 @@ public class GithubRest
                 }
             }
         }
-        return new FixedSplitSource(splits.build());
+        return getSplitSource(splits.build());
+    }
+
+    private ConnectorSplitSource getSplitSource(List<RestConnectorSplit> splits)
+    {
+        if (maxSplitsPerSecond == Double.MAX_VALUE) {
+            return new FixedSplitSource(splits);
+        }
+        return new RateLimitedSplitSource(executor, splits, maxSplitsPerSecond);
     }
 
     @Override

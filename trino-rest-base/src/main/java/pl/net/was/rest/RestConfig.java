@@ -48,6 +48,7 @@ public class RestConfig
     private DataSize clientMaxBinaryDownloadSize;
     private int minSplits = 1;
     private double maxRequestsPerSecond = Double.MAX_VALUE;
+    private double maxSplitsPerSecond = Double.MAX_VALUE;
     private List<String> minSplitTables = List.of();
 
     public String getCustomerKey()
@@ -205,7 +206,7 @@ public class RestConfig
         if (maxRequestsPerSecond != Double.MAX_VALUE) {
             RateLimiter rateLimiter = RateLimiter.create(maxRequestsPerSecond);
             clientBuilder.addInterceptor(chain -> {
-                rateLimiter.acquire(1);
+                rateLimiter.acquire();
                 return chain.proceed(chain.request());
             });
         }
@@ -253,6 +254,18 @@ public class RestConfig
     public RestConfig setMaxRequestsPerSecond(double maxRequestsPerSecond)
     {
         this.maxRequestsPerSecond = maxRequestsPerSecond;
+        return this;
+    }
+
+    public double getMaxSplitsPerSecond()
+    {
+        return maxSplitsPerSecond;
+    }
+
+    @Config("max-splits-per-second")
+    public RestConfig setMaxSplitsPerSecond(double maxSplitsPerSecond)
+    {
+        this.maxSplitsPerSecond = maxSplitsPerSecond;
         return this;
     }
 }

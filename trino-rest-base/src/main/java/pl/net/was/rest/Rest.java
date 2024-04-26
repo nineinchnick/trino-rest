@@ -139,6 +139,7 @@ public interface Rest
                 .collect(toList());
 
         List<RestConnectorSplit> splits = List.of(new RestConnectorSplit(handle, addresses));
+        // TODO apply rate limiter here - some sort of RateLimitedSplitSource
         return new FixedSplitSource(splits);
     }
 }

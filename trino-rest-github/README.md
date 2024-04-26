@@ -23,9 +23,19 @@ The following configuration options are recognied by this connector:
 
 * `token` - required, the personal access token to authenticate with; it is required, but doesn't have to be valid;
   see the [Authentication and rate limits](#authentication-and-rate-limits) section below
-* `min_splits` and `min_split_tables` - for tables matching endpoints that don't return total number of elements,
-  a minimum number of splits can be used, where every split will fetch next page until no more results are available;
-  defaults to 1 for `issues`, `pulls`, `runs` and `check_runs` tables
+* `client-cache-path` - setting this enables caching of HTTP responses
+* `client-cache-max-size` - defaults to `10MB`
+* `client-connect-timeout` and `client-read-timeout` - defaults to 10 seconds
+* `client-max-binary-download-size` - ignore artifacts larger than this size
+* `min_splits` and `min_split_tables` - for tables matching endpoints that
+  don't return total number of elements, a minimum number of splits can be
+  used, where every split will fetch next page until no more results are
+  available; defaults to 1 for `issues`, `pulls`, `runs` and `check_runs`
+  tables
+* `max-requests-per-second` - rate-limit HTTP requests, applies to the HTTP
+  client, so is independent on every worker
+* `max-splits-per-second` - rate-limit the number of splits, this effectively
+  limits the number of requests for the whole Trino cluster
 
 # Build
 
