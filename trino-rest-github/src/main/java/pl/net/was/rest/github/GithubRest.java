@@ -123,6 +123,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.google.common.base.Verify.verify;
+import static io.airlift.concurrent.Threads.daemonThreadsNamed;
 import static io.trino.spi.StandardErrorCode.INVALID_ORDER_BY;
 import static io.trino.spi.StandardErrorCode.INVALID_ROW_FILTER;
 import static io.trino.spi.type.BigintType.BIGINT;
@@ -133,7 +134,7 @@ import static io.trino.spi.type.VarcharType.VARCHAR;
 import static java.lang.String.format;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 import static java.util.Objects.requireNonNull;
-import static java.util.concurrent.Executors.newFixedThreadPool;
+import static java.util.concurrent.Executors.newCachedThreadPool;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static pl.net.was.rest.github.function.Artifacts.download;
@@ -159,7 +160,7 @@ public class GithubRest
     private static GithubService service;
     private static long maxBinaryDownloadSizeBytes;
 
-    private final ExecutorService executor = newFixedThreadPool(1);
+    private final ExecutorService executor = newCachedThreadPool(daemonThreadsNamed(GithubRest.class.getName() + "-%d"));
 
     public static final Map<GithubTable, List<ColumnMetadata>> columns = new ImmutableMap.Builder<GithubTable, List<ColumnMetadata>>()
             .put(GithubTable.ORGS, ImmutableList.of(
