@@ -52,14 +52,16 @@ public class RateLimitedSplitSource
     {
         ImmutableList.Builder<ConnectorSplit> builder = ImmutableList.builder();
         int size = 0;
+        // block before getting the first split to avoid returning empty batches
+        rateLimiter.acquire();
         while (splits.hasNext() && size < maxSize) {
+            builder.add(splits.next());
+            size += 1;
             if (!rateLimiter.tryAcquire()) {
                 List<ConnectorSplit> result = builder.build();
                 log.debug("Got %d splits after rate limit, maxSize: %d, hasNext: %b", result.size(), maxSize, splits.hasNext());
                 return result;
             }
-            builder.add(splits.next());
-            size += 1;
         }
         List<ConnectorSplit> result = builder.build();
         log.debug("Got %d splits, maxSize: %d, hasNext: %b", result.size(), maxSize, splits.hasNext());
