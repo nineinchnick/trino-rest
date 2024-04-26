@@ -5,11 +5,11 @@
     <parent>
         <groupId>pl.net.was</groupId>
         <artifactId>trino-rest</artifactId>
-        <version>0.142-SNAPSHOT</version>
+        <version>0.142</version>
     </parent>
 
     <artifactId>trino-rest-slack</artifactId>
-    <version>0.142-SNAPSHOT</version>
+    <version>0.142</version>
     <packaging>trino-plugin</packaging>
     <description>Trino REST Slack</description>
 
