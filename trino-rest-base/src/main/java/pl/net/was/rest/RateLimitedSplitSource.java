@@ -55,23 +55,26 @@ public class RateLimitedSplitSource
         while (splits.hasNext() && size < maxSize) {
             if (!rateLimiter.tryAcquire()) {
                 List<ConnectorSplit> result = builder.build();
-                log.debug("Got %d splits after rate limit", result.size());
+                log.debug("Got %d splits after rate limit, maxSize: %d, hasNext: %b", result.size(), maxSize, splits.hasNext());
                 return result;
             }
             builder.add(splits.next());
             size += 1;
         }
         List<ConnectorSplit> result = builder.build();
-        log.debug("Got %d splits", result.size());
+        log.debug("Got %d splits, maxSize: %d, hasNext: %b", result.size(), maxSize, splits.hasNext());
         return result;
     }
 
     @Override
-    public void close() {}
+    public void close()
+    {
+        splits.forEachRemaining(split -> {});
+    }
 
     @Override
     public boolean isFinished()
     {
-        return splits.hasNext();
+        return !splits.hasNext();
     }
 }
