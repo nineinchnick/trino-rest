@@ -1164,6 +1164,7 @@ public class Sync
                         insertStatement.setLong(3 + i, ids.get(i));
                     }
                     rows += retryExecute(insertStatement);
+                    MILLISECONDS.sleep(getQueryDelayMillis());
                 }
                 log.info(format("Inserted %d rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
                 if (rows == 0) {
@@ -1551,6 +1552,7 @@ public class Sync
 
                 long startTime = System.currentTimeMillis();
                 int rows = retryExecute(insertStatement);
+                MILLISECONDS.sleep(getQueryDelayMillis());
                 log.info(format("Inserted %d rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
             }
         }
@@ -1614,6 +1616,7 @@ public class Sync
 
                 long startTime = System.currentTimeMillis();
                 int rows = retryExecute(insertStatement);
+                MILLISECONDS.sleep(getQueryDelayMillis());
                 log.info(format("Inserted %d rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
             }
         }
@@ -1677,6 +1680,7 @@ public class Sync
 
                 long startTime = System.currentTimeMillis();
                 int rows = retryExecute(insertStatement);
+                MILLISECONDS.sleep(getQueryDelayMillis());
                 log.info(format("Inserted %d rows, took %s", rows, Duration.ofMillis(System.currentTimeMillis() - startTime)));
             }
         }
