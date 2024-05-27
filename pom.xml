@@ -65,7 +65,7 @@
         <dep.joda.version>2.12.7</dep.joda.version>
         <dep.junit.version>5.10.2</dep.junit.version>
         <dep.slf4j.version>2.0.13</dep.slf4j.version>
-        <dep.assertj-core.version>3.25.3</dep.assertj-core.version>
+        <dep.assertj-core.version>3.26.0</dep.assertj-core.version>
         <dep.logback.version>1.5.6</dep.logback.version>
         <dep.plugin.surefire.version>3.2.5</dep.plugin.surefire.version>
         <dep.jna.version>5.14.0</dep.jna.version>
@@ -85,7 +85,7 @@
             <dependency>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-bom</artifactId>
-                <version>1.9.24</version>
+                <version>2.0.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -117,7 +117,7 @@
             <dependency>
                 <groupId>net.bytebuddy</groupId>
                 <artifactId>byte-buddy</artifactId>
-                <version>1.14.15</version>
+                <version>1.14.16</version>
             </dependency>
             <dependency>
                 <groupId>net.java.dev.jna</groupId>
