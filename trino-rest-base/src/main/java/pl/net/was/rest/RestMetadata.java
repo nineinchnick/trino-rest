@@ -26,6 +26,7 @@ import io.trino.spi.connector.ConnectorSession;
 import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.ConnectorTableMetadata;
 import io.trino.spi.connector.ConnectorTableProperties;
+import io.trino.spi.connector.ConnectorTableVersion;
 import io.trino.spi.connector.Constraint;
 import io.trino.spi.connector.ConstraintApplicationResult;
 import io.trino.spi.connector.LimitApplicationResult;
@@ -64,13 +65,16 @@ public class RestMetadata
     }
 
     @Override
-    public ConnectorTableHandle getTableHandle(ConnectorSession connectorSession, SchemaTableName schemaTableName)
+    public ConnectorTableHandle getTableHandle(ConnectorSession session, SchemaTableName tableName, Optional<ConnectorTableVersion> startVersion, Optional<ConnectorTableVersion> endVersion)
     {
-        if (!rest.listTables().contains(schemaTableName)) {
+        if (startVersion.isPresent() || endVersion.isPresent()) {
+            throw new TrinoException(StandardErrorCode.NOT_SUPPORTED, "This connector does not support versioned tables");
+        }
+        if (!rest.listTables().contains(tableName)) {
             return null;
         }
         return new RestTableHandle(
-                schemaTableName,
+                tableName,
                 TupleDomain.none(),
                 0,
                 Integer.MAX_VALUE,
