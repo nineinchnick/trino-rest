@@ -49,12 +49,6 @@ public class RestConnectorSplit
         return addresses;
     }
 
-    @Override
-    public Object getInfo()
-    {
-        return "Slack split";
-    }
-
     @JsonProperty("tableHandle")
     public RestTableHandle getTableHandle()
     {

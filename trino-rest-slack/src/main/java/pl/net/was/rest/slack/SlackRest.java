@@ -457,7 +457,7 @@ public class SlackRest
                 restTable,
                 columnHandles.get(tableName),
                 filterApplier.getSupportedFilters(),
-                constraint.getSummary());
+                constraint);
     }
 
     @Override

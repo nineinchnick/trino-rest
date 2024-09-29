@@ -2743,7 +2743,7 @@ public class GithubRest
                 restTable,
                 columnHandles.get(tableName),
                 filterApplier.getSupportedFilters(),
-                constraint.getSummary());
+                constraint);
     }
 
     @Override
@@ -2769,7 +2769,7 @@ public class GithubRest
                 table,
                 columnHandles.get(tableName),
                 filterApplier.getSupportedFilters(),
-                dynamicFilter.getCurrentPredicate());
+                new Constraint(dynamicFilter.getCurrentPredicate()));
         if (result.isPresent()) {
             table = (RestTableHandle) result.get().getHandle();
         }

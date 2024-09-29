@@ -18,6 +18,7 @@ import io.airlift.slice.Slice;
 import io.trino.spi.TrinoException;
 import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ConnectorTableHandle;
+import io.trino.spi.connector.Constraint;
 import io.trino.spi.connector.ConstraintApplicationResult;
 import io.trino.spi.predicate.Domain;
 import io.trino.spi.predicate.Range;
@@ -57,10 +58,11 @@ public interface FilterApplier
             RestTableHandle table,
             Map<String, ColumnHandle> columns,
             Map<String, FilterType> supportedColumnFilters,
-            TupleDomain<ColumnHandle> constraint)
+            Constraint constraint)
     {
+        TupleDomain<ColumnHandle> summary = constraint.getSummary();
         // the only reason not to use isNone is so the linter doesn't complain about not checking an Optional
-        if (constraint.isAll() || constraint.getDomains().isEmpty()) {
+        if (summary.isAll() || summary.getDomains().isEmpty()) {
             return Optional.empty();
         }
 
@@ -72,7 +74,7 @@ public interface FilterApplier
             FilterType supportedFilter = entry.getValue();
             ColumnHandle column = columns.get(columnName);
 
-            TupleDomain<ColumnHandle> newConstraint = normalizeConstraint((RestColumnHandle) column, supportedFilter, constraint);
+            TupleDomain<ColumnHandle> newConstraint = normalizeConstraint((RestColumnHandle) column, supportedFilter, summary);
             if (newConstraint == null || newConstraint.getDomains().isEmpty()) {
                 continue;
             }
@@ -94,7 +96,7 @@ public interface FilterApplier
             }
             found = true;
             // remove from remaining constraints
-            constraint = constraint.filter(
+            summary = summary.filter(
                     (columnHandle, tupleDomain) -> !columnHandle.equals(column));
         }
         if (!found) {
@@ -103,7 +105,8 @@ public interface FilterApplier
 
         return Optional.of(new ConstraintApplicationResult<>(
                 table.cloneWithConstraint(currentConstraint),
-                constraint,
+                summary,
+                constraint.getExpression(),
                 true));
     }
 
