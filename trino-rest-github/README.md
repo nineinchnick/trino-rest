@@ -8,7 +8,7 @@ Because most endpoints have some parameters that are required, there are two way
   functions return an array of rows, which must be unnested: `"SELECT * FROM unnest(pulls(:token, :owner, :repo, :page))`
 * reading from tables - required parameters are inferred from query conditions (`WHERE` clause); if there are multiple pages of results,
   multiple requests will be made to fetch all of them before returning the data
-  
+
 Not all API endpoints are mapped yet, here's a list of the available tables:
 * `orgs` - [Organizations](https://docs.github.com/en/rest/reference/orgs)
 * `users` - [Users](https://docs.github.com/en/rest/reference/users)
@@ -51,17 +51,17 @@ An example command to run the Trino server with the git plugin and catalog enabl
 ```bash
 src=$(git rev-parse --show-toplevel)
 docker run \
-  -v $src/trino-rest-github/target/trino-rest-github-0.136-SNAPSHOT:/usr/lib/trino/plugin/github \
+  -v $src/trino-rest-github/target/trino-rest-github-0.156-SNAPSHOT:/usr/lib/trino/plugin/github \
   -v $src/catalog:/etc/trino/catalog \
   -p 8080:8080 \
   --name trino \
   -d \
-  trinodb/trino:440
+  trinodb/trino:461
 ```
 
 Connect to that server using:
 ```bash
-docker run -it --rm --link trino trinodb/trino:440 trino --server trino:8080 --catalog github --schema default
+docker run -it --rm --link trino trinodb/trino:461 trino --server trino:8080 --catalog github --schema default
 ```
 
 # Authentication and rate limits
@@ -94,7 +94,7 @@ that does this in an incremental fashion, that is it can be run in regular inter
 
 To run the `Sync` utility in `trino-rest-github`:
 ```bash
-java -cp "trino-rest-github/target/trino-rest-github-0.136-SNAPSHOT/*" pl.net.was.rest.github.Sync
+java -cp "trino-rest-github/target/trino-rest-github-0.156-SNAPSHOT/*" pl.net.was.rest.github.Sync
 ```
 
 Check how much data the `Sync` collected by running a query like:
