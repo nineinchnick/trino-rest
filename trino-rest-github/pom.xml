@@ -95,29 +95,8 @@
 
         <dependency>
             <groupId>io.trino</groupId>
-            <artifactId>trino-jdbc</artifactId>
-            <version>${dep.trino.version}</version>
-            <scope>runtime</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>io.trino</groupId>
             <artifactId>trino-main</artifactId>
             <version>${dep.trino.version}</version>
-            <scope>runtime</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>io.trino</groupId>
-            <artifactId>trino-main</artifactId>
-            <version>${dep.trino.version}</version>
-            <type>test-jar</type>
             <scope>test</scope>
         </dependency>
 
