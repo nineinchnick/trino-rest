@@ -1,10 +1,6 @@
 ARG TRINO_VERSION
 FROM nineinchnick/trino-core:$TRINO_VERSION
 
-USER root
-RUN microdnf install -y jq
-USER trino:trino
-
 ARG VERSION
 
 ADD trino-rest-github/target/trino-rest-github-$VERSION/ /usr/lib/trino/plugin/github/
