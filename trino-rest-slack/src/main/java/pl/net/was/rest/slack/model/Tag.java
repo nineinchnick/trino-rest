@@ -16,18 +16,18 @@ package pl.net.was.rest.slack.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.Date;
+import java.time.Instant;
 
 public class Tag
 {
     private final String value;
     private final String creator;
-    private final Date lastSet;
+    private final Instant lastSet;
 
     private Tag(
             @JsonProperty("value") String value,
             @JsonProperty("creator") String creator,
-            @JsonProperty("last_set") Date lastSet)
+            @JsonProperty("last_set") Instant lastSet)
     {
         this.value = value;
         this.creator = creator;
@@ -48,7 +48,7 @@ public class Tag
     }
 
     @JsonProperty("last_set")
-    public Date getLastSet()
+    public Instant getLastSet()
     {
         return lastSet;
     }

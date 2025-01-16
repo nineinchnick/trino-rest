@@ -19,7 +19,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.trino.spi.type.DateTimeEncoding;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 
 import static java.util.Objects.requireNonNull;
@@ -42,7 +42,7 @@ public class User
     private final boolean isRestricted;
     private final boolean isUltraRestricted;
     private final boolean isBot;
-    private final Date updated;
+    private final Instant updated;
     private final boolean isAppUser;
     private final boolean has2FactorAuth;
 
@@ -64,7 +64,7 @@ public class User
             @JsonProperty("is_restricted") boolean isRestricted,
             @JsonProperty("is_ultra_restricted") boolean isUltraRestricted,
             @JsonProperty("is_bot") boolean isBot,
-            @JsonProperty("updated") Date updated,
+            @JsonProperty("updated") Instant updated,
             @JsonProperty("is_app_user") boolean isAppUser,
             @JsonProperty("has_2fa") boolean has2FactorAuth)
     {
@@ -121,7 +121,7 @@ public class User
                         isRestricted,
                         isUltraRestricted,
                         isBot,
-                        updated != null ? DateTimeEncoding.packDateTimeWithZone(updated.getTime(), 0) : 0,
+                        updated != null ? DateTimeEncoding.packDateTimeWithZone(updated.toEpochMilli(), 0) : 0,
                         isAppUser,
                         has2FactorAuth)
                 .build();

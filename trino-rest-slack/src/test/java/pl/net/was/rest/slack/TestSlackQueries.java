@@ -58,7 +58,7 @@ public class TestSlackQueries
         assertQuery("SELECT member FROM channel_members WHERE channel = 'C024ZB0UMBJ' ORDER BY member",
                 "VALUES 'U0242PCE55L', 'U0249TNJUDR'");
         computeActual("SELECT * FROM messages WHERE channel = 'C024ZB0UMBJ'");
-        computeActual("SELECT * FROM replies WHERE channel = 'C024ZB0UMBJ' AND ts = '1623095713.000400'");
+        computeActual("SELECT * FROM replies WHERE channel = 'C024ZB0UMBJ' AND thread_ts = TIMESTAMP '2021-06-07 19:55:13.000400Z'");
     }
 
     @Test

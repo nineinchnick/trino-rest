@@ -18,12 +18,18 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.trino.spi.block.BlockBuilder;
 import io.trino.spi.block.MapBlockBuilder;
+import io.trino.spi.type.LongTimestampWithTimeZone;
 import io.trino.spi.type.MapType;
 import io.trino.spi.type.TypeOperators;
 
+import java.time.Instant;
 import java.util.List;
 
+import static io.trino.spi.type.DateTimeEncoding.packDateTimeWithZone;
 import static io.trino.spi.type.IntegerType.INTEGER;
+import static io.trino.spi.type.LongTimestampWithTimeZone.fromEpochMillisAndFraction;
+import static io.trino.spi.type.Timestamps.NANOSECONDS_PER_MILLISECOND;
+import static io.trino.spi.type.Timestamps.PICOSECONDS_PER_NANOSECOND;
 import static io.trino.spi.type.VarcharType.VARCHAR;
 
 public class Message
@@ -31,19 +37,19 @@ public class Message
     private final String type;
     private final String subtype;
     private final boolean hidden;
-    private final String channel;
+    private String channel;
     private final String user;
     private final String text;
-    private final String threadTs;
+    private final Instant threadTs;
     private final int replyCount;
     private final boolean subscribed;
-    private final String lastRead;
+    private final Instant lastRead;
     private final int unreadCount;
     private final String parentUserId;
-    private final String ts;
+    private final Instant ts;
     private final EditedMessage edited;
-    private final String deletedTs;
-    private final String eventTs;
+    private final Instant deletedTs;
+    private final Instant eventTs;
     private final boolean isStarred;
     private final List<String> pinnedTo;
     private final List<Reaction> reactions;
@@ -55,16 +61,16 @@ public class Message
             @JsonProperty("channel") String channel,
             @JsonProperty("user") String user,
             @JsonProperty("text") String text,
-            @JsonProperty("thread_ts") String threadTs,
+            @JsonProperty("thread_ts") Instant threadTs,
             @JsonProperty("reply_count") int replyCount,
             @JsonProperty("subscribed") boolean subscribed,
-            @JsonProperty("last_read") String lastRead,
+            @JsonProperty("last_read") Instant lastRead,
             @JsonProperty("unread_count") int unreadCount,
             @JsonProperty("parent_user_id") String parentUserId,
-            @JsonProperty("ts") String ts,
+            @JsonProperty("ts") Instant ts,
             @JsonProperty("edited") EditedMessage edited,
-            @JsonProperty("deleted_ts") String deletedTs,
-            @JsonProperty("event_ts") String eventTs,
+            @JsonProperty("deleted_ts") Instant deletedTs,
+            @JsonProperty("event_ts") Instant eventTs,
             @JsonProperty("is_starred") boolean isStarred,
             @JsonProperty("pinned_to") List<String> pinnedTo,
             @JsonProperty("reactions") List<Reaction> reactions)
@@ -88,6 +94,11 @@ public class Message
         this.isStarred = isStarred;
         this.pinnedTo = pinnedTo;
         this.reactions = reactions;
+    }
+
+    public void setChannel(String channel)
+    {
+        this.channel = channel;
     }
 
     public List<?> toRow()
@@ -118,19 +129,28 @@ public class Message
                 channel != null ? channel : "",
                 user != null ? user : "",
                 text != null ? text : "",
-                threadTs != null ? threadTs : "",
+                ofInstant(threadTs),
                 replyCount,
                 subscribed,
-                lastRead != null ? lastRead : "",
+                lastRead != null ? packDateTimeWithZone(lastRead.toEpochMilli(), 0) : 0,
                 unreadCount,
                 parentUserId != null ? parentUserId : "",
-                ts,
+                ofInstant(ts),
                 edited != null ? edited.getUser() : "",
-                edited != null ? edited.getTs() : "",
-                deletedTs != null ? deletedTs : "",
-                eventTs != null ? eventTs : "",
+                ofInstant(edited != null ? edited.getTs() : null),
+                ofInstant(deletedTs),
+                ofInstant(eventTs),
                 isStarred,
                 pinnedToList.build(),
                 mapType.getObject(reactions.build(), 0));
+    }
+
+    private static LongTimestampWithTimeZone ofInstant(Instant instant)
+    {
+        if (instant == null) {
+            return fromEpochMillisAndFraction(0, 0, (short) 0);
+        }
+
+        return fromEpochMillisAndFraction(instant.toEpochMilli(), (instant.getNano() % NANOSECONDS_PER_MILLISECOND) * PICOSECONDS_PER_NANOSECOND, (short) 0);
     }
 }

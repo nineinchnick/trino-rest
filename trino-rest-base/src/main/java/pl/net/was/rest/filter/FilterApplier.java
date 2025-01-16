@@ -47,6 +47,8 @@ import static java.lang.Math.floorMod;
 import static java.lang.String.format;
 import static java.time.format.DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 import static pl.net.was.rest.filter.FilterType.EQUAL;
+import static pl.net.was.rest.filter.FilterType.LESS_OR_GREATER_THAN;
+import static pl.net.was.rest.filter.FilterType.LESS_OR_GREATER_THAN_EQUAL;
 
 public interface FilterApplier
 {
@@ -123,12 +125,13 @@ public interface FilterApplier
         if (!domain.getType().isOrderable()) {
             return newConstraint;
         }
+        Range span;
         switch (supportedFilter) {
             case GREATER_THAN_EQUAL:
                 // normalize the constraint into a low-bound range
-                Range span = domain.getValues().getRanges().getSpan();
-                if (span.isLowUnbounded()) {
-                    log.warning(format("Not pushing down filter on %s because it does not have a lower bound: %s", column.getName(), domain));
+                span = domain.getValues().getRanges().getSpan();
+                if (span.isLowUnbounded() || !span.isLowInclusive()) {
+                    log.warning(format("Not pushing down filter on %s because it does not have a lower bound or is exclusive: %s", column.getName(), domain));
                     return null;
                 }
                 newConstraint = TupleDomain.withColumnDomains(Map.of(
@@ -140,12 +143,31 @@ public interface FilterApplier
                                                 span.getLowBoundedValue())),
                                 false)));
                 break;
+            case LESS_OR_GREATER_THAN, LESS_OR_GREATER_THAN_EQUAL:
+                // validate that there's a single range with one bound
+                if (domain.getValues().getRanges().getRangeCount() != 1) {
+                    log.warning(format("Not pushing down filter on %s because has more than one range: %s", column.getName(), domain));
+                    return null;
+                }
+                span = domain.getValues().getRanges().getSpan();
+                if (span.isLowUnbounded() && span.isHighUnbounded()) {
+                    return null;
+                }
+                if (supportedFilter == LESS_OR_GREATER_THAN && ((!span.isLowUnbounded() && span.isLowInclusive()) || (!span.isHighUnbounded() && span.isHighInclusive()))) {
+                    log.warning(format("Not pushing down filter on %s because one side is inclusive: %s", column.getName(), domain));
+                    return null;
+                }
+                if (supportedFilter == LESS_OR_GREATER_THAN_EQUAL && ((!span.isLowUnbounded() && !span.isLowInclusive()) || (span.isHighUnbounded() && !span.isHighInclusive()))) {
+                    log.warning(format("Not pushing down filter on %s because one side is exclusive: %s", column.getName(), domain));
+                    return null;
+                }
+                break;
             case EQUAL:
                 if (!domain.getValues().isDiscreteSet() && !domain.getValues().getRanges().getOrderedRanges().stream().allMatch(Range::isSingleValue)) {
                     log.warning(format("Not pushing down filter on %s because it's not a discrete set: %s", column.getName(), domain));
                     return null;
                 }
-                return newConstraint;
+                break;
         }
         return newConstraint;
     }
