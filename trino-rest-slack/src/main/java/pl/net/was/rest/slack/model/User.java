@@ -108,10 +108,10 @@ public class User
                         teamId != null ? teamId : "",
                         name,
                         deleted,
-                        color,
-                        realName,
-                        timeZone,
-                        timeZoneLabel,
+                        color != null ? color : "",
+                        realName != null ? realName : "",
+                        timeZone != null ? timeZone : "",
+                        timeZoneLabel != null ? timeZoneLabel : "",
                         timeZoneOffset)
                 .addAll(profile.toRow())
                 .add(

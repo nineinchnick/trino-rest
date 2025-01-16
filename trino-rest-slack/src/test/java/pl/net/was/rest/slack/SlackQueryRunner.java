@@ -53,7 +53,8 @@ public class SlackQueryRunner
                 "slack",
                 "slack",
                 ImmutableMap.of(
-                        "token", token));
+                        "token", token,
+                        "max-requests-per-second", "0.3"));
 
         return queryRunner;
     }
