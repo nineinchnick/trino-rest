@@ -16,5 +16,5 @@ package pl.net.was.rest.filter;
 
 public enum FilterType
 {
-    EQUAL, GREATER_THAN_EQUAL,
+    EQUAL, GREATER_THAN_EQUAL, LESS_OR_GREATER_THAN, LESS_OR_GREATER_THAN_EQUAL,
 }

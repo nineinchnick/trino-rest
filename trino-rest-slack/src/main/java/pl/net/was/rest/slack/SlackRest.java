@@ -26,10 +26,11 @@ import io.trino.spi.connector.Constraint;
 import io.trino.spi.connector.ConstraintApplicationResult;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SchemaTablePrefix;
+import io.trino.spi.predicate.Range;
 import io.trino.spi.predicate.TupleDomain;
 import io.trino.spi.type.ArrayType;
+import io.trino.spi.type.LongTimestampWithTimeZone;
 import io.trino.spi.type.MapType;
-import io.trino.spi.type.TimestampWithTimeZoneType;
 import io.trino.spi.type.TypeOperators;
 import jakarta.inject.Inject;
 import pl.net.was.rest.Rest;
@@ -59,7 +60,14 @@ import static io.trino.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 import static io.trino.spi.StandardErrorCode.INVALID_ROW_FILTER;
 import static io.trino.spi.type.BooleanType.BOOLEAN;
 import static io.trino.spi.type.IntegerType.INTEGER;
+import static io.trino.spi.type.LongTimestampWithTimeZone.fromEpochMillisAndFraction;
+import static io.trino.spi.type.TimestampWithTimeZoneType.createTimestampWithTimeZoneType;
+import static io.trino.spi.type.Timestamps.MICROSECONDS_PER_MILLISECOND;
+import static io.trino.spi.type.Timestamps.MILLISECONDS_PER_SECOND;
+import static io.trino.spi.type.Timestamps.PICOSECONDS_PER_MICROSECOND;
+import static io.trino.spi.type.Timestamps.roundDiv;
 import static io.trino.spi.type.VarcharType.VARCHAR;
+import static java.lang.Math.floorDiv;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
@@ -71,6 +79,7 @@ public class SlackRest
 {
     public static final String SCHEMA_NAME = "default";
     private static final int PER_PAGE = 200;
+    public static final String THREAD_NOT_FOUND = "thread_not_found";
 
     private static String token;
     private static SlackService service;
@@ -107,7 +116,7 @@ public class SlackRest
                     new ColumnMetadata("is_restricted", BOOLEAN),
                     new ColumnMetadata("is_ultra_restricted", BOOLEAN),
                     new ColumnMetadata("is_bot", BOOLEAN),
-                    new ColumnMetadata("updated", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
+                    new ColumnMetadata("updated", createTimestampWithTimeZoneType(0)),
                     new ColumnMetadata("is_app_user", BOOLEAN),
                     new ColumnMetadata("has_2fa", BOOLEAN)))
             .put(SlackTable.CHANNELS, ImmutableList.of(
@@ -117,7 +126,7 @@ public class SlackRest
                     new ColumnMetadata("is_channel", BOOLEAN),
                     new ColumnMetadata("is_group", BOOLEAN),
                     new ColumnMetadata("is_im", BOOLEAN),
-                    new ColumnMetadata("created", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
+                    new ColumnMetadata("created", createTimestampWithTimeZoneType(0)),
                     new ColumnMetadata("creator", VARCHAR),
                     new ColumnMetadata("is_archived", BOOLEAN),
                     new ColumnMetadata("is_general", BOOLEAN),
@@ -133,10 +142,10 @@ public class SlackRest
                     new ColumnMetadata("is_mpim", BOOLEAN),
                     new ColumnMetadata("topic_value", VARCHAR),
                     new ColumnMetadata("topic_creatro", VARCHAR),
-                    new ColumnMetadata("topic_last_set", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
+                    new ColumnMetadata("topic_last_set", createTimestampWithTimeZoneType(0)),
                     new ColumnMetadata("purpose_value", VARCHAR),
                     new ColumnMetadata("purpose_creatro", VARCHAR),
-                    new ColumnMetadata("purpose_last_set", TimestampWithTimeZoneType.createTimestampWithTimeZoneType(3)),
+                    new ColumnMetadata("purpose_last_set", createTimestampWithTimeZoneType(0)),
                     new ColumnMetadata("previous_names", new ArrayType(VARCHAR)),
                     new ColumnMetadata("num_members", INTEGER)))
             .put(SlackTable.CHANNEL_MEMBERS, ImmutableList.of(
@@ -149,17 +158,17 @@ public class SlackRest
                     new ColumnMetadata("channel", VARCHAR),
                     new ColumnMetadata("user", VARCHAR),
                     new ColumnMetadata("text", VARCHAR),
-                    new ColumnMetadata("thread_ts", VARCHAR),
+                    new ColumnMetadata("thread_ts", createTimestampWithTimeZoneType(6)),
                     new ColumnMetadata("reply_count", INTEGER),
                     new ColumnMetadata("subscribed", BOOLEAN),
-                    new ColumnMetadata("last_read", VARCHAR),
+                    new ColumnMetadata("last_read", createTimestampWithTimeZoneType(0)),
                     new ColumnMetadata("unread_count", INTEGER),
                     new ColumnMetadata("parent_user_id", VARCHAR),
-                    new ColumnMetadata("ts", VARCHAR),
+                    new ColumnMetadata("ts", createTimestampWithTimeZoneType(6)),
                     new ColumnMetadata("edited_user", VARCHAR),
-                    new ColumnMetadata("edited_ts", VARCHAR),
-                    new ColumnMetadata("deleted_ts", VARCHAR),
-                    new ColumnMetadata("event_ts", VARCHAR),
+                    new ColumnMetadata("edited_ts", createTimestampWithTimeZoneType(6)),
+                    new ColumnMetadata("deleted_ts", createTimestampWithTimeZoneType(6)),
+                    new ColumnMetadata("event_ts", createTimestampWithTimeZoneType(6)),
                     new ColumnMetadata("is_starred", BOOLEAN),
                     new ColumnMetadata("pinned_to", new ArrayType(VARCHAR)),
                     new ColumnMetadata("reactions", new MapType(VARCHAR, INTEGER, new TypeOperators()))))
@@ -170,17 +179,17 @@ public class SlackRest
                     new ColumnMetadata("channel", VARCHAR),
                     new ColumnMetadata("user", VARCHAR),
                     new ColumnMetadata("text", VARCHAR),
-                    new ColumnMetadata("thread_ts", VARCHAR),
+                    new ColumnMetadata("thread_ts", createTimestampWithTimeZoneType(6)),
                     new ColumnMetadata("reply_count", INTEGER),
                     new ColumnMetadata("subscribed", BOOLEAN),
-                    new ColumnMetadata("last_read", VARCHAR),
+                    new ColumnMetadata("last_read", createTimestampWithTimeZoneType(0)),
                     new ColumnMetadata("unread_count", INTEGER),
                     new ColumnMetadata("parent_user_id", VARCHAR),
-                    new ColumnMetadata("ts", VARCHAR),
+                    new ColumnMetadata("ts", createTimestampWithTimeZoneType(6)),
                     new ColumnMetadata("edited_user", VARCHAR),
-                    new ColumnMetadata("edited_ts", VARCHAR),
-                    new ColumnMetadata("deleted_ts", VARCHAR),
-                    new ColumnMetadata("event_ts", VARCHAR),
+                    new ColumnMetadata("edited_ts", createTimestampWithTimeZoneType(6)),
+                    new ColumnMetadata("deleted_ts", createTimestampWithTimeZoneType(6)),
+                    new ColumnMetadata("event_ts", createTimestampWithTimeZoneType(6)),
                     new ColumnMetadata("is_starred", BOOLEAN),
                     new ColumnMetadata("pinned_to", new ArrayType(VARCHAR)),
                     new ColumnMetadata("reactions", new MapType(VARCHAR, INTEGER, new TypeOperators()))))
@@ -335,13 +344,39 @@ public class SlackRest
 
         String channel = (String) filter.getFilter((RestColumnHandle) columns.get("channel"), constraint);
         requirePredicate(channel, "messages.channel");
+        String latest;
+        String oldest;
+        if (constraint.getDomains().isPresent() && constraint.getDomains().get().get(columns.get("ts")) != null) {
+            Range span = constraint.getDomains().get().get(columns.get("ts")).getValues().getRanges().getSpan();
+            if (span.isHighUnbounded()) {
+                latest = formatEpochMicros(fromEpochMillisAndFraction(System.currentTimeMillis(), 0, (short) 0));
+                oldest = formatEpochMicros((LongTimestampWithTimeZone) span.getLowBoundedValue());
+            }
+            else if (span.isLowUnbounded()) {
+                latest = formatEpochMicros((LongTimestampWithTimeZone) span.getHighBoundedValue());
+                oldest = "0";
+            }
+            else {
+                latest = formatEpochMicros((LongTimestampWithTimeZone) span.getHighBoundedValue());
+                oldest = formatEpochMicros((LongTimestampWithTimeZone) span.getLowBoundedValue());
+            }
+        }
+        else {
+            latest = formatEpochMicros(fromEpochMillisAndFraction(System.currentTimeMillis(), 0, (short) 0));
+            oldest = "0";
+        }
         return getRowsFromPagesEnvelope(
                 cursor -> service.listMessages(
                         "Bearer " + token,
                         cursor,
                         PER_PAGE,
-                        channel),
-                item -> Stream.of(item.toRow()),
+                        channel,
+                        latest,
+                        oldest),
+                item -> {
+                    item.setChannel(channel);
+                    return Stream.of(item.toRow());
+                },
                 table.getLimit());
     }
 
@@ -356,9 +391,10 @@ public class SlackRest
         FilterApplier filter = filterAppliers.get(tableName);
 
         String channel = (String) filter.getFilter((RestColumnHandle) columns.get("channel"), constraint);
-        String ts = (String) filter.getFilter((RestColumnHandle) columns.get("ts"), constraint);
+        // cannot use getFilter here since we require the value to be encoded as an epoch
+        String ts = epochMicros(columns.get("thread_ts"), constraint, null);
         requirePredicate(channel, "replies.channel");
-        requirePredicate(ts, "replies.ts");
+        requirePredicate(ts, "replies.thread_ts");
         return getRowsFromPagesEnvelope(
                 cursor -> service.listReplies(
                         "Bearer " + token,
@@ -366,8 +402,24 @@ public class SlackRest
                         PER_PAGE,
                         channel,
                         ts),
-                item -> Stream.of(item.toRow()),
+                item -> {
+                    item.setChannel(channel);
+                    return Stream.of(item.toRow());
+                },
                 table.getLimit());
+    }
+
+    private static String epochMicros(ColumnHandle column, TupleDomain<ColumnHandle> constraint, String defaultValue)
+    {
+        if (!constraint.getDomains().isPresent() || constraint.getDomains().get().get(column) == null) {
+            return defaultValue;
+        }
+        return formatEpochMicros((LongTimestampWithTimeZone) constraint.getDomains().get().get(column).getValues().getRanges().getSpan().getLowBoundedValue());
+    }
+
+    private static String formatEpochMicros(LongTimestampWithTimeZone value)
+    {
+        return "%d.%06d".formatted(floorDiv(value.getEpochMillis(), MILLISECONDS_PER_SECOND), (value.getEpochMillis() % MILLISECONDS_PER_SECOND) * MICROSECONDS_PER_MILLISECOND + roundDiv(value.getPicosOfMilli(), PICOSECONDS_PER_MICROSECOND));
     }
 
     private void requirePredicate(Object value, String name)
@@ -410,6 +462,9 @@ public class SlackRest
                 Rest.checkServiceResponse(response);
                 E envelope = requireNonNull(response.body(), "response body is null");
                 if (!envelope.isOk()) {
+                    if (envelope.getError().equals(THREAD_NOT_FOUND)) {
+                        return false;
+                    }
                     throw new TrinoException(GENERIC_INTERNAL_ERROR, envelope.getError());
                 }
                 List<T> items = envelope.getItems();

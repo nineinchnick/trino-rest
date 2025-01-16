@@ -45,14 +45,16 @@ public interface SlackService
             @Query("limit") int limit,
             @Query("channel") String channel);
 
-    @GET("conversations.history")
+    @GET("conversations.history?include_all_metadata=true")
     Call<Messages> listMessages(
             @Header("Authorization") String auth,
             @Query("cursor") String cursor,
             @Query("limit") int limit,
-            @Query("channel") String channel);
+            @Query("channel") String channel,
+            @Query("latest") String latest,
+            @Query("oldest") String oldest);
 
-    @GET("conversations.replies")
+    @GET("conversations.replies?include_all_metadata=true")
     Call<Messages> listReplies(
             @Header("Authorization") String auth,
             @Query("cursor") String cursor,

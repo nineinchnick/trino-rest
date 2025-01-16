@@ -17,15 +17,17 @@ package pl.net.was.rest.slack.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.time.Instant;
+
 public class EditedMessage
 {
     private final String user;
-    private final String ts;
+    private final Instant ts;
 
     @JsonCreator
     public EditedMessage(
             @JsonProperty("user") String user,
-            @JsonProperty("ts") String ts)
+            @JsonProperty("ts") Instant ts)
     {
         this.user = user;
         this.ts = ts;
@@ -36,7 +38,7 @@ public class EditedMessage
         return user;
     }
 
-    public String getTs()
+    public Instant getTs()
     {
         return ts;
     }

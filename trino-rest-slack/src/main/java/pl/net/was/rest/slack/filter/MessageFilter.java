@@ -27,6 +27,7 @@ public class MessageFilter
     public Map<String, FilterType> getSupportedFilters()
     {
         return ImmutableMap.of(
-                "channel", FilterType.EQUAL);
+                "channel", FilterType.EQUAL,
+                "ts", FilterType.LESS_OR_GREATER_THAN);
     }
 }

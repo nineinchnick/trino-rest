@@ -28,6 +28,6 @@ public class ReplyFilter
     {
         return ImmutableMap.of(
                 "channel", FilterType.EQUAL,
-                "ts", FilterType.EQUAL);
+                "thread_ts", FilterType.EQUAL);
     }
 }

@@ -20,7 +20,7 @@ import com.google.common.collect.ImmutableList;
 import io.trino.spi.block.BlockBuilder;
 import io.trino.spi.type.DateTimeEncoding;
 
-import java.util.Date;
+import java.time.Instant;
 import java.util.List;
 
 import static io.trino.spi.type.VarcharType.VARCHAR;
@@ -33,7 +33,7 @@ public class Channel
     private final boolean isChannel;
     private final boolean isGroup;
     private final boolean isIm;
-    private final Date created;
+    private final Instant created;
     private final String creator;
     private final boolean isArchived;
     private final boolean isGeneral;
@@ -59,7 +59,7 @@ public class Channel
             @JsonProperty("is_channel") boolean isChannel,
             @JsonProperty("is_group") boolean isGroup,
             @JsonProperty("is_im") boolean isIm,
-            @JsonProperty("created") Date created,
+            @JsonProperty("created") Instant created,
             @JsonProperty("creator") String creator,
             @JsonProperty("is_archived") boolean isArchived,
             @JsonProperty("is_general") boolean isGeneral,
@@ -129,7 +129,7 @@ public class Channel
                 isChannel,
                 isGroup,
                 isIm,
-                created != null ? DateTimeEncoding.packDateTimeWithZone(created.getTime(), 0) : 0,
+                created != null ? DateTimeEncoding.packDateTimeWithZone(created.toEpochMilli(), 0) : 0,
                 creator != null ? creator : "",
                 isArchived,
                 isGeneral,
@@ -145,10 +145,10 @@ public class Channel
                 isMpim,
                 topic != null ? topic.getValue() : "",
                 topic != null ? topic.getCreator() : "",
-                topic != null && topic.getLastSet() != null ? DateTimeEncoding.packDateTimeWithZone(topic.getLastSet().getTime(), 0) : 0,
+                topic != null && topic.getLastSet() != null ? DateTimeEncoding.packDateTimeWithZone(topic.getLastSet().toEpochMilli(), 0) : 0,
                 purpose != null ? purpose.getValue() : "",
                 purpose != null ? purpose.getCreator() : "",
-                purpose != null && purpose.getLastSet() != null ? DateTimeEncoding.packDateTimeWithZone(purpose.getLastSet().getTime(), 0) : 0,
+                purpose != null && purpose.getLastSet() != null ? DateTimeEncoding.packDateTimeWithZone(purpose.getLastSet().toEpochMilli(), 0) : 0,
                 previousNamesList.build(),
                 numMembers);
     }
