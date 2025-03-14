@@ -419,7 +419,12 @@ public class SlackRest
 
     private static String formatEpochMicros(LongTimestampWithTimeZone value)
     {
-        return "%d.%06d".formatted(floorDiv(value.getEpochMillis(), MILLISECONDS_PER_SECOND), (value.getEpochMillis() % MILLISECONDS_PER_SECOND) * MICROSECONDS_PER_MILLISECOND + roundDiv(value.getPicosOfMilli(), PICOSECONDS_PER_MICROSECOND));
+        long seconds = floorDiv(value.getEpochMillis(), MILLISECONDS_PER_SECOND);
+        long milliseconds = (value.getEpochMillis() % MILLISECONDS_PER_SECOND) * MICROSECONDS_PER_MILLISECOND + roundDiv(value.getPicosOfMilli(), PICOSECONDS_PER_MICROSECOND);
+        if (milliseconds == 0) {
+            return String.valueOf(seconds);
+        }
+        return "%d.%06d".formatted(seconds, milliseconds);
     }
 
     private void requirePredicate(Object value, String name)
