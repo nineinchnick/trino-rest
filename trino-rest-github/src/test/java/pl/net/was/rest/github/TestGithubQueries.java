@@ -56,8 +56,8 @@ public class TestGithubQueries
                 "VALUES ('nineinchnick')");
         assertQuery("SELECT count(*) FROM commits WHERE owner = 'nineinchnick' AND repo = 'trino-rest' AND sha = 'e43f63027cae851f3a02c2816b2f234991b2d139'",
                 "VALUES (18)");
-        assertQuery("SELECT title FROM issues WHERE owner = 'nineinchnick' AND repo = 'trino-rest' AND number = 40",
-                "VALUES ('Dynamic filtering')");
+        assertQuery("SELECT title FROM issues WHERE owner = 'nineinchnick' AND repo = 'trino-rest' AND number = 292",
+                "VALUES ('Dynamic Filters in Trino Rest')");
         assertQuery("SELECT user_login FROM issue_comments WHERE owner = 'nineinchnick' AND repo = 'trino-rest' AND id = 873167897",
                 "VALUES ('nineinchnick')");
         assertQuery("SELECT title FROM pulls WHERE owner = 'nineinchnick' AND repo = 'trino-rest' AND number = 1",
