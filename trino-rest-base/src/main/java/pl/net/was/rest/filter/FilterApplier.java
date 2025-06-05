@@ -32,6 +32,7 @@ import pl.net.was.rest.RestTableHandle;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -141,7 +142,7 @@ public interface FilterApplier
                                         Range.greaterThanOrEqual(
                                                 domain.getType(),
                                                 span.getLowBoundedValue())),
-                                false)));
+                                domain.isNullAllowed())));
                 break;
             case LESS_OR_GREATER_THAN, LESS_OR_GREATER_THAN_EQUAL:
                 // validate that there's a single range with one bound
@@ -164,8 +165,19 @@ public interface FilterApplier
                 break;
             case EQUAL:
                 if (!domain.getValues().isDiscreteSet() && !domain.getValues().getRanges().getOrderedRanges().stream().allMatch(Range::isSingleValue)) {
-                    log.warning(format("Not pushing down filter on %s because it's not a discrete set: %s", column.getName(), domain));
-                    return null;
+                    // expand small ranges into discrete sets
+                    Optional<Collection<Object>> expandedRange = domain.getValues().tryExpandRanges(1024);
+                    if (expandedRange.isEmpty()) {
+                        log.warning(format("Not pushing down filter on %s because it's not a discrete set: %s", column.getName(), domain));
+                        return null;
+                    }
+                    newConstraint = TupleDomain.withColumnDomains(Map.of(
+                            column,
+                            Domain.create(
+                                    ValueSet.copyOf(
+                                            column.getType(),
+                                            expandedRange.get()),
+                                    domain.isNullAllowed())));
                 }
                 break;
         }
