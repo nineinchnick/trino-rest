@@ -1811,7 +1811,7 @@ public class GithubRest
         String repo = (String) filter.getFilter((RestColumnHandle) columns.get("repo"), constraint);
         requirePredicate(owner, "issues.owner");
         requirePredicate(repo, "issues.repo");
-        String since = (String) filter.getFilter((RestColumnHandle) columns.get("updated_at"), constraint, "1970-01-01T00:00:00Z");
+        String since = (String) filter.getFilter((RestColumnHandle) columns.get("updated_at"), constraint, "1970-01-01");
         String state = (String) filter.getFilter((RestColumnHandle) columns.get("state"), constraint, "all");
         SortItem sortOrder = getSortItem(table);
         return getRowsFromPages(
