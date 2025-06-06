@@ -17,6 +17,7 @@ package pl.net.was.rest.github.function;
 import com.google.common.collect.ImmutableList;
 import io.airlift.slice.Slice;
 import io.trino.spi.PageBuilder;
+import io.trino.spi.TrinoException;
 import io.trino.spi.block.Block;
 import io.trino.spi.function.Description;
 import io.trino.spi.function.ScalarFunction;
@@ -33,6 +34,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static io.trino.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
 import static io.trino.spi.type.StandardTypes.BIGINT;
 import static io.trino.spi.type.StandardTypes.VARCHAR;
 import static java.net.HttpURLConnection.HTTP_NOT_FOUND;
@@ -45,6 +47,8 @@ import static pl.net.was.rest.github.GithubRest.getRowType;
 public class Jobs
         extends BaseFunction
 {
+    public static final int MAX_RETRIES = 4;
+
     public Jobs()
     {
         RowType rowType = getRowType(GithubTable.JOBS);
@@ -60,6 +64,7 @@ public class Jobs
         List<Job> jobs = new ArrayList<>();
         long total = Long.MAX_VALUE;
         int page = 1;
+        int retries = MAX_RETRIES;
         while (jobs.size() < total) {
             Response<JobsList> response = service.listRunJobs(
                     "Bearer " + token,
@@ -68,11 +73,21 @@ public class Jobs
                     runId,
                     "all",
                     PER_PAGE,
-                    page++).execute();
+                    page).execute();
             if (response.code() == HTTP_NOT_FOUND) {
                 break;
             }
-            Rest.checkServiceResponse(response);
+            try {
+                Rest.checkServiceResponse(response);
+            }
+            catch (TrinoException e) {
+                if (e.getErrorCode() == GENERIC_INTERNAL_ERROR.toErrorCode() && retries-- == 0) {
+                    throw e;
+                }
+                continue;
+            }
+            page += 1;
+            retries = MAX_RETRIES;
             JobsList envelope = response.body();
             total = requireNonNull(envelope, "response body is null").getTotalCount();
             List<Job> items = envelope.getItems();

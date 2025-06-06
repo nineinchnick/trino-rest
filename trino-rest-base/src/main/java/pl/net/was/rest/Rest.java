@@ -45,6 +45,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import static io.trino.spi.StandardErrorCode.GENERIC_INTERNAL_ERROR;
+import static io.trino.spi.StandardErrorCode.GENERIC_USER_ERROR;
 import static java.util.stream.Collectors.toList;
 
 public interface Rest
@@ -65,7 +66,7 @@ public interface Rest
                 // pass
             }
         }
-        throw new TrinoException(GENERIC_INTERNAL_ERROR, message);
+        throw new TrinoException(400 <= response.code() && response.code() < 500 ? GENERIC_USER_ERROR : GENERIC_INTERNAL_ERROR, message);
     }
 
     ConnectorTableMetadata getTableMetadata(SchemaTableName schemaTableName);
