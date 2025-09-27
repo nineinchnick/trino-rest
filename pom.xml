@@ -10,7 +10,7 @@
 
     <groupId>pl.net.was</groupId>
     <artifactId>trino-rest</artifactId>
-    <version>0.174</version>
+    <version>0.175-SNAPSHOT</version>
     <packaging>pom</packaging>
     <description>Trino RESTful Connectors</description>
 
@@ -30,7 +30,7 @@
 
     <scm>
         <developerConnection>scm:git:https://github.com/nineinchnick/trino-rest.git</developerConnection>
-        <tag>v0.174</tag>
+        <tag>HEAD</tag>
     </scm>
 
     <distributionManagement>
