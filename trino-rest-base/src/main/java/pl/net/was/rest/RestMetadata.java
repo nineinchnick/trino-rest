@@ -30,6 +30,7 @@ import io.trino.spi.connector.ConnectorTableVersion;
 import io.trino.spi.connector.Constraint;
 import io.trino.spi.connector.ConstraintApplicationResult;
 import io.trino.spi.connector.LimitApplicationResult;
+import io.trino.spi.connector.RelationColumnsMetadata;
 import io.trino.spi.connector.RetryMode;
 import io.trino.spi.connector.SchemaTableName;
 import io.trino.spi.connector.SchemaTablePrefix;
@@ -41,9 +42,12 @@ import io.trino.spi.statistics.TableStatistics;
 import jakarta.inject.Inject;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.UnaryOperator;
 
 import static java.util.stream.Collectors.toMap;
 
@@ -123,11 +127,17 @@ public class RestMetadata
     }
 
     @Override
-    public Map<SchemaTableName, List<ColumnMetadata>> listTableColumns(
-            ConnectorSession connectorSession,
-            SchemaTablePrefix schemaTablePrefix)
+    public Iterator<RelationColumnsMetadata> streamRelationColumns(
+            ConnectorSession session,
+            Optional<String> schemaName,
+            UnaryOperator<Set<SchemaTableName>> relationFilter)
     {
-        return rest.listTableColumns(schemaTablePrefix);
+        SchemaTablePrefix prefix = schemaName.map(SchemaTablePrefix::new)
+                .orElseGet(SchemaTablePrefix::new);
+        Map<SchemaTableName, List<ColumnMetadata>> tableColumns = rest.listTableColumns(prefix);
+        return relationFilter.apply(tableColumns.keySet()).stream()
+                .map(tableName -> RelationColumnsMetadata.forTable(tableName, tableColumns.get(tableName)))
+                .iterator();
     }
 
     @Override

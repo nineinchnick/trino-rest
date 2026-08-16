@@ -26,7 +26,7 @@ import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.ConnectorTableMetadata;
 import io.trino.spi.connector.Constraint;
 import io.trino.spi.connector.ConstraintApplicationResult;
-import io.trino.spi.connector.DynamicFilter;
+import io.trino.spi.connector.DynamicFilterSnapshot;
 import io.trino.spi.connector.FixedSplitSource;
 import io.trino.spi.connector.LimitApplicationResult;
 import io.trino.spi.connector.SchemaTableName;
@@ -131,7 +131,7 @@ public interface Rest
     default ConnectorSplitSource getSplitSource(
             NodeManager nodeManager,
             ConnectorTableHandle table,
-            DynamicFilter dynamicFilter)
+            DynamicFilterSnapshot dynamicFilterSnapshot)
     {
         RestTableHandle handle = (RestTableHandle) table;
 

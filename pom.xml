@@ -5,7 +5,7 @@
     <parent>
         <groupId>io.airlift</groupId>
         <artifactId>airbase</artifactId>
-        <version>334</version>
+        <version>395</version>
     </parent>
 
     <groupId>pl.net.was</groupId>
@@ -53,10 +53,8 @@
         <air.build.jvmsize>4g</air.build.jvmsize>
         <air.test.jvm.additional-arguments>--add-modules=jdk.incubator.vector</air.test.jvm.additional-arguments>
 
-        <dep.trino.version>479</dep.trino.version>
-        <dep.airlift.version>386</dep.airlift.version>
-        <dep.jackson-annotations.version>2.20</dep.jackson-annotations.version>
-        <dep.logback.version>1.5.22</dep.logback.version>
+        <dep.trino.version>483</dep.trino.version>
+        <dep.airlift.version>439</dep.airlift.version>
 
         <project.scm.id>github</project.scm.id>
     </properties>
@@ -66,7 +64,7 @@
             <dependency>
                 <groupId>com.squareup.okhttp3</groupId>
                 <artifactId>okhttp-bom</artifactId>
-                <version>5.3.2</version>
+                <version>5.5.0</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -82,38 +80,13 @@
             </dependency>
             <dependency>
                 <groupId>io.airlift</groupId>
-                <artifactId>jmx-http-rpc</artifactId>
-                <version>${dep.airlift.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.airlift</groupId>
                 <artifactId>json</artifactId>
                 <version>${dep.airlift.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.airlift</groupId>
-                <artifactId>slice</artifactId>
-                <version>${dep.slice.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.airlift</groupId>
                 <artifactId>units</artifactId>
-                <version>1.12</version>
-            </dependency>
-            <dependency>
-                <groupId>org.openjdk.jol</groupId>
-                <artifactId>jol-core</artifactId>
-                <version>0.17</version>
-            </dependency>
-            <dependency>
-                <groupId>org.osgi</groupId>
-                <artifactId>org.osgi.core</artifactId>
-                <version>6.0.0</version>
-            </dependency>
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-api</artifactId>
-                <version>${dep.slf4j.version}</version>
+                <version>1.13</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -123,7 +96,6 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>${dep.guava.version}</version>
         </dependency>
 
         <dependency>
@@ -134,7 +106,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-            <version>${dep.jackson-annotations.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -200,7 +171,6 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>${dep.assertj-core.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -209,14 +179,9 @@
         <pluginManagement>
             <plugins>
                 <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-shade-plugin</artifactId>
-                    <version>3.6.1</version>
-                </plugin>
-                <plugin>
                     <groupId>ca.vanzyl.provisio.maven.plugins</groupId>
                     <artifactId>provisio-maven-plugin</artifactId>
-                    <version>1.1.1</version>
+                    <version>2.0.0</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -224,14 +189,12 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>
-                <version>3.1.4</version>
                 <configuration>
                     <skip>true</skip>
                 </configuration>
             </plugin>
             <plugin>
                 <artifactId>maven-release-plugin</artifactId>
-                <version>3.3.1</version>
                 <configuration>
                     <scmCommentPrefix>[ci skip]</scmCommentPrefix>
                     <tagNameFormat>v@{project.version}</tagNameFormat>
@@ -241,7 +204,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-scm-plugin</artifactId>
-                <version>2.2.1</version>
                 <configuration>
                     <pushChanges>true</pushChanges>
                 </configuration>
@@ -249,7 +211,7 @@
             <plugin>
                 <groupId>io.trino</groupId>
                 <artifactId>trino-maven-plugin</artifactId>
-                <version>17</version>
+                <version>24</version>
                 <extensions>true</extensions>
                 <configuration>
                     <pluginClassName>io.trino.spi.Plugin</pluginClassName>
@@ -267,7 +229,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-wrapper-plugin</artifactId>
-                <version>3.3.4</version>
             </plugin>
         </plugins>
     </build>

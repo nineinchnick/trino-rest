@@ -15,21 +15,23 @@
 package pl.net.was.rest;
 
 import io.trino.spi.NodeManager;
+import io.trino.spi.connector.ColumnHandle;
 import io.trino.spi.connector.ConnectorSession;
+import io.trino.spi.connector.ConnectorSplit;
 import io.trino.spi.connector.ConnectorSplitManager;
 import io.trino.spi.connector.ConnectorSplitSource;
 import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.ConnectorTransactionHandle;
 import io.trino.spi.connector.Constraint;
-import io.trino.spi.connector.DynamicFilter;
+import io.trino.spi.connector.DynamicFilterSnapshot;
 import jakarta.inject.Inject;
 
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
-import static io.trino.spi.connector.DynamicFilter.NOT_BLOCKED;
+import static io.trino.spi.connector.DynamicFilterSnapshot.EMPTY;
 import static java.util.Objects.requireNonNull;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class RestSplitManager
         implements ConnectorSplitManager
@@ -49,72 +51,68 @@ public class RestSplitManager
             ConnectorTransactionHandle transaction,
             ConnectorSession session,
             ConnectorTableHandle table,
-            DynamicFilter dynamicFilter,
+            Set<ColumnHandle> dynamicFilterColumns,
             Constraint constraint)
     {
-        long timeoutMillis = 20000;
-        if (!dynamicFilter.isAwaitable()) {
-            return rest.getSplitSource(nodeManager, table, dynamicFilter);
+        if (dynamicFilterColumns.isEmpty()) {
+            return rest.getSplitSource(nodeManager, table, EMPTY);
         }
-        CompletableFuture<?> dynamicFilterFuture = whenCompleted(dynamicFilter)
-                .completeOnTimeout(null, timeoutMillis, MILLISECONDS);
-        CompletableFuture<ConnectorSplitSource> splitSourceFuture = dynamicFilterFuture.thenApply(
-                ignored -> rest.getSplitSource(nodeManager, table, dynamicFilter));
-        return new RestDynamicFilteringSplitSource(dynamicFilterFuture, splitSourceFuture);
-    }
-
-    private static CompletableFuture<?> whenCompleted(DynamicFilter dynamicFilter)
-    {
-        if (dynamicFilter.isAwaitable()) {
-            return dynamicFilter.isBlocked().thenCompose(ignored -> whenCompleted(dynamicFilter));
-        }
-        return NOT_BLOCKED;
+        return new RestDynamicFilteringSplitSource(rest, nodeManager, table);
     }
 
     private static class RestDynamicFilteringSplitSource
             implements ConnectorSplitSource
     {
-        private final CompletableFuture<?> dynamicFilterFuture;
-        private final CompletableFuture<ConnectorSplitSource> splitSourceFuture;
+        private static final long DYNAMIC_FILTERING_WAIT_TIMEOUT_MILLIS = 20_000;
+
+        private final Rest rest;
+        private final NodeManager nodeManager;
+        private final ConnectorTableHandle table;
+
+        private ConnectorSplitSource delegate;
 
         private RestDynamicFilteringSplitSource(
-                CompletableFuture<?> dynamicFilterFuture,
-                CompletableFuture<ConnectorSplitSource> splitSourceFuture)
+                Rest rest,
+                NodeManager nodeManager,
+                ConnectorTableHandle table)
         {
-            this.dynamicFilterFuture = requireNonNull(dynamicFilterFuture, "dynamicFilterFuture is null");
-            this.splitSourceFuture = requireNonNull(splitSourceFuture, "splitSourceFuture is null");
+            this.rest = requireNonNull(rest, "rest is null");
+            this.nodeManager = requireNonNull(nodeManager, "nodeManager is null");
+            this.table = requireNonNull(table, "table is null");
         }
 
         @Override
-        public CompletableFuture<ConnectorSplitBatch> getNextBatch(int maxSize)
+        public long getRequestedDynamicFilterWaitTimeoutMillis()
         {
-            return splitSourceFuture.thenCompose(splitSource -> splitSource.getNextBatch(maxSize));
+            return DYNAMIC_FILTERING_WAIT_TIMEOUT_MILLIS;
         }
 
         @Override
-        @SuppressWarnings("FutureReturnValueIgnored")
-        public void close()
+        public CompletableFuture<List<ConnectorSplit>> getNextBatch(int maxSize, DynamicFilterSnapshot dynamicFilterSnapshot)
         {
-            if (!dynamicFilterFuture.cancel(true)) {
-                splitSourceFuture.thenAccept(ConnectorSplitSource::close);
+            return getDelegate(dynamicFilterSnapshot).getNextBatch(maxSize, dynamicFilterSnapshot);
+        }
+
+        @Override
+        public synchronized void close()
+        {
+            if (delegate != null) {
+                delegate.close();
             }
         }
 
         @Override
-        public boolean isFinished()
+        public synchronized boolean isFinished()
         {
-            if (!splitSourceFuture.isDone()) {
-                return false;
+            return delegate != null && delegate.isFinished();
+        }
+
+        private synchronized ConnectorSplitSource getDelegate(DynamicFilterSnapshot dynamicFilterSnapshot)
+        {
+            if (delegate == null) {
+                delegate = rest.getSplitSource(nodeManager, table, dynamicFilterSnapshot);
             }
-            if (splitSourceFuture.isCompletedExceptionally()) {
-                return false;
-            }
-            try {
-                return splitSourceFuture.get().isFinished();
-            }
-            catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
-            }
+            return delegate;
         }
     }
 }

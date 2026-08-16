@@ -424,7 +424,6 @@ public class Sync
     {
         Connection conn = options.conn;
         String destSchema = options.destSchema;
-        String srcSchema = options.srcSchema;
         try {
             options.conn.createStatement().executeUpdate(
                     "CREATE TABLE IF NOT EXISTS " + options.destSchema + ".replies AS SELECT * FROM " + options.srcSchema + ".replies WITH NO DATA");

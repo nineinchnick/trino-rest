@@ -128,7 +128,7 @@ public interface FilterApplier
         }
         Range span;
         switch (supportedFilter) {
-            case GREATER_THAN_EQUAL:
+            case GREATER_THAN_EQUAL -> {
                 // normalize the constraint into a low-bound range
                 span = domain.getValues().getRanges().getSpan();
                 if (span.isLowUnbounded() || !span.isLowInclusive()) {
@@ -141,10 +141,10 @@ public interface FilterApplier
                                 ValueSet.ofRanges(
                                         Range.greaterThanOrEqual(
                                                 domain.getType(),
-                                                span.getLowBoundedValue())),
+                                        span.getLowBoundedValue())),
                                 domain.isNullAllowed())));
-                break;
-            case LESS_OR_GREATER_THAN, LESS_OR_GREATER_THAN_EQUAL:
+            }
+            case LESS_OR_GREATER_THAN, LESS_OR_GREATER_THAN_EQUAL -> {
                 // validate that there's a single range with one bound
                 if (domain.getValues().getRanges().getRangeCount() != 1) {
                     log.warning(format("Not pushing down filter on %s because has more than one range: %s", column.getName(), domain));
@@ -162,8 +162,8 @@ public interface FilterApplier
                     log.warning(format("Not pushing down filter on %s because one side is exclusive: %s", column.getName(), domain));
                     return null;
                 }
-                break;
-            case EQUAL:
+            }
+            case EQUAL -> {
                 if (!domain.getValues().isDiscreteSet() && !domain.getValues().getRanges().getOrderedRanges().stream().allMatch(Range::isSingleValue)) {
                     // expand small ranges into discrete sets
                     Optional<Collection<Object>> expandedRange = domain.getValues().tryExpandRanges(1024);
@@ -179,7 +179,7 @@ public interface FilterApplier
                                             expandedRange.get()),
                                     domain.isNullAllowed())));
                 }
-                break;
+            }
         }
         return newConstraint;
     }
@@ -215,28 +215,28 @@ public interface FilterApplier
         if (constraint.getDomains().isPresent()) {
             domain = constraint.getDomains().get().get(column);
         }
-        switch (column.getType().getBaseName()) {
-            case StandardTypes.TIMESTAMP:
-            case StandardTypes.TIMESTAMP_WITH_TIME_ZONE:
+        return switch (column.getType().getBaseName()) {
+            case StandardTypes.TIMESTAMP, StandardTypes.TIMESTAMP_WITH_TIME_ZONE -> {
                 if (domain == null) {
-                    return defaultValue;
+                    yield defaultValue;
                 }
                 long since = (long) domain.getValues().getRanges().getSpan().getLowBoundedValue();
-                return ISO_LOCAL_DATE_TIME.format(fromTrinoTimestamp(since)) + "Z";
-            case StandardTypes.VARCHAR:
+                yield ISO_LOCAL_DATE_TIME.format(fromTrinoTimestamp(since)) + "Z";
+            }
+            case StandardTypes.VARCHAR -> {
                 if (domain == null) {
-                    return defaultValue;
+                    yield defaultValue;
                 }
-                return ((Slice) domain.getSingleValue()).toStringUtf8();
-            case StandardTypes.BIGINT:
-            case StandardTypes.INTEGER:
+                yield ((Slice) domain.getSingleValue()).toStringUtf8();
+            }
+            case StandardTypes.BIGINT, StandardTypes.INTEGER -> {
                 if (domain == null) {
-                    return defaultValue;
+                    yield defaultValue;
                 }
-                return domain.getSingleValue();
-            default:
-                throw new TrinoException(INVALID_ROW_FILTER, "Unexpected constraint for " + column.getName() + "(" + column.getType().getBaseName() + ")");
-        }
+                yield domain.getSingleValue();
+            }
+            default -> throw new TrinoException(INVALID_ROW_FILTER, "Unexpected constraint for " + column.getName() + "(" + column.getType().getBaseName() + ")");
+        };
     }
 
     default ZonedDateTime fromTrinoTimestamp(long timestampWithTimeZone)

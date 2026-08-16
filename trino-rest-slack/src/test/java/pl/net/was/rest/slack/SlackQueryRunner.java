@@ -41,7 +41,7 @@ public class SlackQueryRunner
 
         QueryRunner queryRunner = DistributedQueryRunner.builder(defaultSession)
                 .setCoordinatorProperties(Map.of(
-                        "http-server.http.port", requireNonNullElse(System.getenv("TRINO_PORT"), "8082")))
+                        "http-server.http.port", requireNonNullElse(System.getenv("TRINO_PORT"), "0")))
                 .setWorkerCount(0)
                 .build();
         queryRunner.installPlugin(new SlackPlugin());

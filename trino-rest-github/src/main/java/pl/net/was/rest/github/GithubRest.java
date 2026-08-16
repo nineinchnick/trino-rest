@@ -31,7 +31,7 @@ import io.trino.spi.connector.ConnectorTableHandle;
 import io.trino.spi.connector.ConnectorTableMetadata;
 import io.trino.spi.connector.Constraint;
 import io.trino.spi.connector.ConstraintApplicationResult;
-import io.trino.spi.connector.DynamicFilter;
+import io.trino.spi.connector.DynamicFilterSnapshot;
 import io.trino.spi.connector.FixedSplitSource;
 import io.trino.spi.connector.LimitApplicationResult;
 import io.trino.spi.connector.SchemaTableName;
@@ -1699,15 +1699,11 @@ public class GithubRest
     {
         GithubTable tableName = GithubTable.valueOf(table);
         List<SortItem> sortOrder = table.getSortOrder().orElseGet(() -> supportedTableSort.get(tableName));
-        String sortName = sortOrder.get(0).getName();
-        switch (sortOrder.get(0).getName()) {
-            case "created_at":
-                sortName = "created";
-                break;
-            case "updated_at":
-                sortName = "updated";
-                break;
-        }
+        String sortName = switch (sortOrder.get(0).getName()) {
+            case "created_at" -> "created";
+            case "updated_at" -> "updated";
+            default -> sortOrder.get(0).getName();
+        };
         return new SortItem(sortName, sortOrder.get(0).getSortOrder());
     }
 
@@ -2750,7 +2746,7 @@ public class GithubRest
     public ConnectorSplitSource getSplitSource(
             NodeManager nodeManager,
             ConnectorTableHandle handle,
-            DynamicFilter dynamicFilter)
+            DynamicFilterSnapshot dynamicFilterSnapshot)
     {
         RestTableHandle table = (RestTableHandle) handle;
 
@@ -2764,12 +2760,12 @@ public class GithubRest
             List<RestConnectorSplit> splits = List.of(new RestConnectorSplit(table, addresses));
             return getSplitSource(splits);
         }
-        // merge in constraints from dynamicFilter, which may contain multivalued domains
+        // merge in constraints from dynamicFilterSnapshot, which may contain multivalued domains
         Optional<ConstraintApplicationResult<ConnectorTableHandle>> result = filterApplier.applyFilter(
                 table,
                 columnHandles.get(tableName),
                 filterApplier.getSupportedFilters(),
-                new Constraint(dynamicFilter.getCurrentPredicate()));
+                new Constraint(dynamicFilterSnapshot.currentPredicate()));
         if (result.isPresent()) {
             table = (RestTableHandle) result.get().getHandle();
         }
@@ -2915,8 +2911,7 @@ public class GithubRest
         switch (tableName) {
             // return same number of rows for issues and issue_comments,
             // assuming that some issues don't have any comments, so these numbers are close together
-            case ISSUES:
-            case ISSUE_COMMENTS:
+            case ISSUES, ISSUE_COMMENTS -> {
                 String owner = (String) filter.getFilter((RestColumnHandle) columns.get("owner"), table.getConstraint());
                 String repo = (String) filter.getFilter((RestColumnHandle) columns.get("repo"), table.getConstraint());
                 if (owner == null || repo == null) {
@@ -2940,9 +2935,10 @@ public class GithubRest
                     }
                     builder.setColumnStatistics(column, columnStatistic.build());
                 }
-                break;
-            default:
+            }
+            default -> {
                 return TableStatistics.empty();
+            }
         }
         return builder.build();
     }
