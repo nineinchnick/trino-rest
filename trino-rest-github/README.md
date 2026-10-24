@@ -56,12 +56,12 @@ docker run \
   -p 8080:8080 \
   --name trino \
   -d \
-  trinodb/trino:462
+  trinodb/trino:484
 ```
 
 Connect to that server using:
 ```bash
-docker run -it --rm --link trino trinodb/trino:462 trino --server trino:8080 --catalog github --schema default
+docker run -it --rm --link trino trinodb/trino:484 trino --server trino:8080 --catalog github --schema default
 ```
 
 # Authentication and rate limits
